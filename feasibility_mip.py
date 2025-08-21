@@ -35,8 +35,10 @@ print("Diseases by patients:", patient_diseases)
 print("Doctor rank by patie:", allocate_rank)
 print("Patient start, lengt:", patient_available)
 
-# create a binary list for doctor availability per doctor per time period
-doctor_availability = []
+I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
+
+# Create a binary list for doctor availability per doctor per time period
+doctor_times = []
 for d in doctor_available:
     time_list = []
     binary_list = []
@@ -47,9 +49,9 @@ for d in doctor_available:
             binary_list.append(1)
         else:
             binary_list.append(0)
-    doctor_availability.append(binary_list)
+    doctor_times.append(binary_list)
 
-# create a binary list for patient availability per patient per time period 
+# Create a binary list for patient availability per patient per time period 
 patient_times = []
 for p in patient_available:
     time_list = []
@@ -63,9 +65,6 @@ for p in patient_available:
             binary_list.append(0)
     patient_times.append(binary_list) 
 
-I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
-
-
 m = gp.Model("Doctor patient feasibility")
 
 # Variables
@@ -74,19 +73,19 @@ Y = {(i,j,t):
     for i in I for j in J for t in T}
 
 # Constraints
-PatientsAreSeenAtMostOnce = \
-{i:
- m.addConstr(gp.quicksum(Y[i,j,t] for j in J for t in T) <= 1)
- for i in I}
-
 DoctorsAreNotOverbooked = \
 {(j,t):
  m.addConstr(gp.quicksum(Y[i,j,tt] for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t]) <= 1)
  for j in J for t in T}
 
+PatientsAreSeenAtMostOnce = \
+{i:
+ m.addConstr(gp.quicksum(Y[i,j,t] for j in J for t in T) <= 1)
+ for i in I}
+
 FeasibleTime = \
 {(i,j,k,t):
- m.addConstr(Y[i,j,t] <= doctor_availability[j][tt] * patient_times[i][tt])
+ m.addConstr(Y[i,j,t] <= doctor_times[j][tt] * patient_times[i][tt])
  for k in K for i in I_k[k] for j in J for t in T for tt in range(t, min(t + treat[j][k] - 1, T[-1] + 1))}
 
 m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
