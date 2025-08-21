@@ -1,10 +1,10 @@
 import gurobipy as gp
 import data_gen
 
+I = range(10)
+J = range(4)
 K = range(2)
 T = range(8)
-J = range(4)
-I = range(10)
 
 disease_treat_times = data_gen.gen_diseases(K)
 treat = data_gen.gen_doctor_time_treat(J, K, disease_treat_times)
@@ -42,10 +42,16 @@ AllPatientsAreSeenAtMostOnce = \
 m.addConstr(gp.quicksum(Y[i,j,t] for j in J for t in T) <= 1)
 for i in I}
 
+
 DoctorsAreNotOverbooked = \
 {(j,t):
 m.addConstr(gp.quicksum(Y[i,j,tt] for k in K for i in I_k[k] for tt in T[max(0, t-treat[j][k] + 1):t]) <= 1)
 for j in J for t in T}
+
+FeasibleTime = \
+{(i,j,k,t):
+ m.addConstr(Y[i,j,t] <= doctor_availability[j, tt] * patient_times[i, tt])
+ for k in K for i in I_k[k] for j in J for t in T for tt in range(t, min(t + treat[j][k] - 1, T[-1] + 1))}
 
 m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
 
