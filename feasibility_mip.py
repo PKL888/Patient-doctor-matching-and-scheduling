@@ -1,56 +1,60 @@
 import gurobipy as gp
-import data_gen
+from data_gen import *
 
 I = range(10)
 J = range(4)
 K = range(2)
 T = range(8)
 
-disease_treat_times = data_gen.gen_diseases(K)
-treat = data_gen.gen_doctor_time_treat(J, K, disease_treat_times)
-doctor_can_treat = data_gen.gen_doctor_can_treat(treat, T)
-doctor_disease_prefs = data_gen.gen_doctor_disease_preferences(doctor_can_treat)
-doctor_availability = data_gen.gen_doctor_times(T, K, J, treat, doctor_can_treat)
+random.seed(10)
 
-print(treat)
-print(doctor_can_treat)
-print(doctor_disease_prefs)
-print(doctor_availability)
+best = gen_best(K)
+treat = gen_treat(J, K, best)
+qualified = gen_qualified(T, treat)
 
-patient_diseases = data_gen.gen_patient_diseases(I, K)
+print("Best treatment times:", best)
+print("Doctor service times:",treat)
+print("Enough time to treat:", qualified)
+
+doctor_rank = gen_doctor_rank(qualified)
+doctor_available = gen_doctor_available(J, K, T, qualified, treat)
+
+print("-" * 21)
+print("Disease rank by doct:", doctor_rank)
+print("Doctor start, length:", doctor_available)
+
+patient_diseases = gen_patient_diseases(I, K)
+allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
+patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
+
+print("-" * 21)
+print("Diseases by patients:", patient_diseases)
+print("Doctor rank by patie:", allocate_rank)
+print("Patient start, lengt:", patient_available)
 
 I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
 
-patient_doctor_prefs = data_gen.gen_patient_doctor_prefs(I, J, patient_diseases, doctor_can_treat)
-patient_times = data_gen.gen_patient_times(I, J, T, patient_diseases, doctor_can_treat, treat)
-        
+m = gp.Model("Doctor-patient feasibility")
 
-print(patient_diseases)
-print(patient_doctor_prefs)
-print(patient_times)
-
-m = gp.Model("Doctor patient feasibility")
-
-# variables
+# Variables
 Y = {(i,j,t):
     m.addVar(vtype=gp.GRB.BINARY)
     for i in I for j in J for t in T}
 
-# constraints
-AllPatientsAreSeenAtMostOnce = \
+# Constraints
+PatientsAreSeenAtMostOnce = \
 {i:
-m.addConstr(gp.quicksum(Y[i,j,t] for j in J for t in T) <= 1)
-for i in I}
-
+ m.addConstr(gp.quicksum(Y[i,j,t] for j in J for t in T) <= 1)
+ for i in I}
 
 DoctorsAreNotOverbooked = \
 {(j,t):
-m.addConstr(gp.quicksum(Y[i,j,tt] for k in K for i in I_k[k] for tt in T[max(0, t-treat[j][k] + 1):t]) <= 1)
-for j in J for t in T}
+ m.addConstr(gp.quicksum(Y[i,j,tt] for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t]) <= 1)
+ for j in J for t in T}
 
 FeasibleTime = \
 {(i,j,k,t):
- m.addConstr(Y[i,j,t] <= doctor_availability[j, tt] * patient_times[i, tt])
+ m.addConstr(Y[i,j,t] <= doctor_available[j,tt] * patient_available[i,tt])
  for k in K for i in I_k[k] for j in J for t in T for tt in range(t, min(t + treat[j][k] - 1, T[-1] + 1))}
 
 m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)

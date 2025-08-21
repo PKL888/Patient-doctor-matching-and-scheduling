@@ -1,115 +1,107 @@
 import random
 import math
 
+def gen_best(K):
+    return [random.choice([1,2,3]) for k in K]
 
+def gen_treat(J, K, best):
+    return [[math.ceil(best[k] / min(max(0.000001,random.normalvariate(0.75,0.5)),1)) for k in K] for j in J]
 
-def gen_diseases(diseases):
-    return [random.choice([1,2,3]) for i in diseases]
-
-def gen_doctor_time_treat(doctors, diseases, disease_treat_dura):
-    return [[math.ceil(disease_treat_dura[o] / min(max(0.000001,random.normalvariate(0.75,0.5)),1)) for o in diseases] for d in doctors]
-
-def gen_doctor_can_treat(doctor_treat_times, time_periods):
-    return [[doctor_treat_time <= len(time_periods)  for doctor_treat_time in doctor] for doctor in doctor_treat_times]
+# Checks if a doctor can treat a disease based on the number of time periods available
+def gen_qualified(T, treat):
+    return [[treat_time <= len(T) for treat_time in j] for j in treat]
 
 M1 = 100
 
-def gen_doctor_disease_preferences(doctor_can_treat):
+def gen_doctor_rank(qualified):
     ans = []
-    for doctor in doctor_can_treat:
-        num_diseases_to_rank = sum(doctor)
+    for j in qualified:
+        num_diseases_to_rank = sum(j)
         disease_ranking = []
         ranks_to_give = [i for i in range(1, num_diseases_to_rank + 1)]
         random.shuffle(ranks_to_give)
-        for disease_is_treated in doctor:
+        for disease_is_treated in j:
             if disease_is_treated:
                 disease_ranking.append(ranks_to_give.pop(0))
             else:
                 disease_ranking.append(M1)
-        
         ans.append(disease_ranking)
-    
     return ans
 
-def gen_doctor_times(time_periods, diseases, doctors, doctor_treat_times, doctor_can_treat):
-    num_time_periods = len(time_periods)
+def gen_doctor_available(J, K, T, qualified, treat):
+    num_time_periods = len(T)
     ans = []
-    for doctor in doctors:
-        min_time = max(doctor_treat_times[doctor][k] for k in diseases if doctor_can_treat[doctor][k])
+    for j in J:
+        min_time = max(treat[j][k] for k in K if qualified[j][k])
         length_available = random.choice(range(min_time, num_time_periods + 1))
         start_time = random.choice(range(1, num_time_periods - length_available + 2))
         ans.append((start_time, length_available))
-    
     return ans
 
-
-
-
-def gen_patient_diseases(patients, diseases):
+def gen_patient_diseases(I, K):
     ans = []
-    for patient in patients:
-        disease = random.choice(diseases)
+    for i in I:
+        disease = random.choice(K)
         ans.append(disease)
     return ans
 
-def gen_patient_doctor_prefs(patients, doctors, patient_diseases, doctor_can_treat):
+def gen_allocate_rank(I, J, patient_diseases, qualified):
     ans = []
-    for patient in patients:
-        correct_doctors = [doctor for doctor in doctors if doctor_can_treat[doctor][patient_diseases[patient]]]
+    for i in I:
+        correct_doctors = [j for j in J if qualified[j][patient_diseases[i]]]
         num_doctors = len(correct_doctors)
         prefs = []
         ranks_to_give = [i for i in range(1, num_doctors + 1)]
         random.shuffle(ranks_to_give)
-        for doctor in doctors:
-            if doctor in correct_doctors:
+        for j in J:
+            if j in correct_doctors:
                 prefs.append(ranks_to_give.pop(0))
             else:
                 prefs.append(M1)
         ans.append(prefs)
     return ans
 
-def gen_patient_times(patients, doctors, time_periods, patient_diseases, doctor_can_treat, doctor_treat_times):
+def gen_patient_available(I, J, T, patient_diseases, qualified, treat):
     # wants to
-    num_time_periods = len(time_periods)
-
+    num_time_periods = len(T)
     ans = []
-    for patient in patients:
-        patient_disease = patient_diseases[patient]
-        min_time = min(doctor_treat_times[doctor][patient_disease] for doctor in doctors if doctor_can_treat[doctor][patient_disease])
-
+    for i in I:
+        patient_disease = patient_diseases[i]
+        min_time = min(treat[j][patient_disease] for j in J if qualified[j][patient_disease])
         length_available = random.choice(range(min_time, num_time_periods + 1))
         start_time = random.choice(range(1, num_time_periods - length_available + 2))
         ans.append((start_time, length_available))
     return ans
 
-        
-
 if __name__ == "__main__":
 
-    O = range(2)
+    I = range(10)
+    J = range(4)
+    K = range(2)
     T = range(8)
-    D = range(4)
-    P = range(10)
-
 
     random.seed(10)
 
-    disease_treat_times = gen_diseases(O)
-    doctor_treat_times = gen_doctor_time_treat(D, O, disease_treat_times)
-    doctor_can_treat = gen_doctor_can_treat(doctor_treat_times, T)
-    doctor_disease_prefs = gen_doctor_disease_preferences(doctor_can_treat)
-    doctor_availability = gen_doctor_times(T, O, D, doctor_treat_times, doctor_can_treat)
+    best = gen_best(K)
+    treat = gen_treat(J, K, best)
+    qualified = gen_qualified(T, treat)
 
-    print(doctor_treat_times)
-    print(doctor_can_treat)
-    print(doctor_disease_prefs)
-    print(doctor_availability)
+    print("Best treatment times:", best)
+    print("Doctor service times:",treat)
+    print("Enough time to treat:", qualified)
 
-    patient_diseases = gen_patient_diseases(P, O)
-    patient_doctor_prefs = gen_patient_doctor_prefs(P, D, patient_diseases, doctor_can_treat)
-    patient_times = gen_patient_times(P, D, T, patient_diseases, doctor_can_treat, doctor_treat_times)
-            
+    doctor_rank = gen_doctor_rank(qualified)
+    doctor_available = gen_doctor_available(J, K, T, qualified, treat)
+    
+    print("-" * 21)
+    print("Disease rank by doct:", doctor_rank)
+    print("Doctor start, length:", doctor_available)
 
-    print(patient_diseases)
-    print(patient_doctor_prefs)
-    print(patient_times)
+    patient_diseases = gen_patient_diseases(I, K)
+    allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
+    patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
+
+    print("-" * 21)
+    print("Diseases by patients:", patient_diseases)
+    print("Doctor rank by patie:", allocate_rank)
+    print("Patient start, lengt:", patient_available)
