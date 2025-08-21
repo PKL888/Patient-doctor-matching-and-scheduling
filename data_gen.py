@@ -1,31 +1,10 @@
 import random
 import math
 
-O = range(2)
-T = range(8)
-D = range(4)
-P = range(10)
 
-PROB_TREAT_DISEASE = 0.8
-random.seed(10)
 
 def gen_diseases(diseases):
     return [random.choice([1,2,3]) for i in diseases]
-
-# def gen_doctor_disease_data(n: int, disease_lengths: list):
-#     # num_diseases = len(diseases)
-#     all_doctors_appt_lengths = []
-#     all_doctors_can_treat = []
-#     for doctor in range(n):
-#         doctor_appt_lengths = []
-#         for disease in disease_lengths:
-#             skill = random.normalvariate(0.75,0.5)
-#             time = math.ceil(disease_lengths[disease] / min(max(0.000001,random.normalvariate(0.75,0.5)),1))
-#             doctor_appt_lengths.append(time)
-
-#         # disease_vec = [(int(random.random() <= PROB_TREAT_DISEASE), math.ceil(diseases[disease] / min(max(0.000001,random.normalvariate(0.75,0.5)),1))) for disease in diseases]
-#         all_doctors_appt_lengths.append(doctor_appt_lengths)
-#     return ans
 
 def gen_doctor_time_treat(doctors, diseases, disease_treat_dura):
     return [[math.ceil(disease_treat_dura[o] / min(max(0.000001,random.normalvariate(0.75,0.5)),1)) for o in diseases] for d in doctors]
@@ -64,16 +43,7 @@ def gen_doctor_times(time_periods, diseases, doctors, doctor_treat_times, doctor
     return ans
 
 
-disease_treat_times = gen_diseases(O)
-doctor_treat_times = gen_doctor_time_treat(D, O, disease_treat_times)
-doctor_can_treat = gen_doctor_can_treat(doctor_treat_times, T)
-doctor_disease_prefs = gen_doctor_disease_preferences(doctor_can_treat)
-doctor_availability = gen_doctor_times(T, O, D, doctor_treat_times, doctor_can_treat)
 
-print(doctor_treat_times)
-print(doctor_can_treat)
-print(doctor_disease_prefs)
-print(doctor_availability)
 
 def gen_patient_diseases(patients, diseases):
     ans = []
@@ -112,33 +82,34 @@ def gen_patient_times(patients, doctors, time_periods, patient_diseases, doctor_
         ans.append((start_time, length_available))
     return ans
 
-
-    #     min_time = max(doctor_treat_times[doctor][k] for k in diseases if doctor_can_treat[doctor][k])
-    #     length_available = random.choice(range(min_time, num_time_periods + 1))
-    #     start_time = random.choice(range(1, num_time_periods - length_available + 1))
-    #     ans.append((start_time, length_available))
-    
-    # return ans
         
 
+if __name__ == "__main__":
+
+    O = range(2)
+    T = range(8)
+    D = range(4)
+    P = range(10)
 
 
-patient_diseases = gen_patient_diseases(P, O)
-patient_doctor_prefs = gen_patient_doctor_prefs(P, D, patient_diseases, doctor_can_treat)
-patient_times = gen_patient_times(P, D, T, patient_diseases, doctor_can_treat, doctor_treat_times)
-        
+    random.seed(10)
 
-print(patient_diseases)
-print(patient_doctor_prefs)
-print(patient_times)
+    disease_treat_times = gen_diseases(O)
+    doctor_treat_times = gen_doctor_time_treat(D, O, disease_treat_times)
+    doctor_can_treat = gen_doctor_can_treat(doctor_treat_times, T)
+    doctor_disease_prefs = gen_doctor_disease_preferences(doctor_can_treat)
+    doctor_availability = gen_doctor_times(T, O, D, doctor_treat_times, doctor_can_treat)
 
-# doctor_disease = gen_doctor_disease_data(4, gen_diseases(Diseases))
+    print(doctor_treat_times)
+    print(doctor_can_treat)
+    print(doctor_disease_prefs)
+    print(doctor_availability)
 
+    patient_diseases = gen_patient_diseases(P, O)
+    patient_doctor_prefs = gen_patient_doctor_prefs(P, D, patient_diseases, doctor_can_treat)
+    patient_times = gen_patient_times(P, D, T, patient_diseases, doctor_can_treat, doctor_treat_times)
+            
 
-
-
-
-# print(doctor_disease)
-
-
-# doctors = {0: {"diseases": [1,1]}}
+    print(patient_diseases)
+    print(patient_doctor_prefs)
+    print(patient_times)
