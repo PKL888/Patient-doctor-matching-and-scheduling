@@ -98,17 +98,16 @@ if __name__ == "__main__":
     doctor_treat_times = gen_doctor_time_treat(D, O, disease_treat_times)
     doctor_can_treat = gen_doctor_can_treat(doctor_treat_times, T)
     doctor_disease_prefs = gen_doctor_disease_preferences(doctor_can_treat)
-    doctor_availability = gen_doctor_times(T, O, D, doctor_treat_times, doctor_can_treat)
+    doctor_times = gen_doctor_times(T, O, D, doctor_treat_times, doctor_can_treat)
 
     print(doctor_treat_times)
     print(doctor_can_treat)
     print(doctor_disease_prefs)
-    print(doctor_availability)
+    print(doctor_times)
 
     patient_diseases = gen_patient_diseases(P, O)
     patient_doctor_prefs = gen_patient_doctor_prefs(P, D, patient_diseases, doctor_can_treat)
-    patient_times = gen_patient_times(P, D, T, patient_diseases, doctor_can_treat, doctor_treat_times)
-            
+    patient_times = gen_patient_times(P, D, T, patient_diseases, doctor_can_treat, doctor_treat_times)          
 
     print(patient_diseases)
     print(patient_doctor_prefs)
