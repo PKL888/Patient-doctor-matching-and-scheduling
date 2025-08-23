@@ -4,10 +4,10 @@ import random
 
 random.seed(10)
 
-I = range(10)
-J = range(4)
-K = range(2)
-T = range(8)
+I = range(20)
+J = range(6)
+K = range(4)
+T = range(20)
 
 random.seed(10)
 
@@ -44,7 +44,7 @@ for d in doctor_available:
     binary_list = []
     for j in range(d[0], d[0]+d[1]):
         time_list.append(j)
-    for i in range(8):
+    for i in range(len(T)):
         if i in time_list:
             binary_list.append(1)
         else:
@@ -58,7 +58,7 @@ for p in patient_available:
     binary_list = []
     for j in range(p[0], p[0]+p[1]):
         time_list.append(j)
-    for i in range(8):
+    for i in range(len(T)):
         if i in time_list:
             binary_list.append(1)
         else:
@@ -92,10 +92,33 @@ m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MA
 
 m.optimize()
 
+def left_pad_string(s, length):
+    if len(s) >= length:
+        return s
+    
+    return " " * (3 - len(s)) + s 
+
+schedule = []
 for j in J:
     print("doctor:", j, "treatment length:", treat[j])
     print("times available", doctor_times[j])
     print("start appointment", [sum(Y[i,j,t].x for i in I) for t in T])
     # print("checking ", [sum((Y[i,j,tt].x) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) and not doctor_times[j][t] for t in T])
-    print("(patient, disease)", [(int(patient - 1), patient_diseases[int(patient - 1)]) for patient in [sum((Y[i,j,tt].x * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]])
+    doctor_schedule = [int(patient - 1) for patient in [sum((Y[i,j,tt].x * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]]
+    doctor_schedule_with_disease = [(patient, patient_diseases[patient]) for patient in doctor_schedule]
+    # print("(patient, disease)", [(int(patient - 1), patient_diseases[int(patient - 1)]) for patient in [sum((Y[i,j,tt].x * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]])
+    print("(patient, disease)", doctor_schedule_with_disease)
+    schedule.append(doctor_schedule)
+    
+
+def print_schedule(schedule):
+    padding = 3
+    print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
+    for j in J:
+        formatted_doctor_schedule = [(patient >= 0) * str(patient) + (patient < 0) * " " + "-" * (1 - doctor_times[j][t]) for t, patient in enumerate(schedule[j])]
+        padded_doctor_shedule = [left_pad_string(s, padding) for s in formatted_doctor_schedule]
+        print("doctor:", j, ",".join(padded_doctor_shedule))
+
+print_schedule(schedule)
+    
     
