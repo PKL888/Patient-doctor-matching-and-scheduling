@@ -75,7 +75,7 @@ Y = {(i,j,t):
 # Constraints
 DoctorsAreNotOverbooked = \
 {(j,t):
- m.addConstr(gp.quicksum(Y[i,j,tt] for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t]) <= 1)
+ m.addConstr(gp.quicksum(Y[i,j,tt] for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) <= 1)
  for j in J for t in T}
 
 PatientsAreSeenAtMostOnce = \
@@ -84,10 +84,18 @@ PatientsAreSeenAtMostOnce = \
  for i in I}
 
 FeasibleTime = \
-{(i,j,k,t):
+{(j,k,t):
  m.addConstr(Y[i,j,t] <= doctor_times[j][tt] * patient_times[i][tt])
- for k in K for i in I_k[k] for j in J for t in T for tt in range(t, min(t + treat[j][k] - 1, T[-1] + 1))}
+ for k in K for i in I_k[k] for j in J for t in T for tt in range(t, min(t + treat[j][k] + 1, T[-1] + 1))}
 
 m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
 
 m.optimize()
+
+for j in J:
+    print("doctor:", j, "treatment length:", treat[j])
+    print("times available", doctor_times[j])
+    print("start appointment", [sum(Y[i,j,t].x for i in I) for t in T])
+    # print("checking ", [sum((Y[i,j,tt].x) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) and not doctor_times[j][t] for t in T])
+    print("(patient, disease)", [(int(patient - 1), patient_diseases[int(patient - 1)]) for patient in [sum((Y[i,j,tt].x * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]])
+    
