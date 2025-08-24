@@ -11,7 +11,7 @@ def gen_treat(J, K, best):
 def gen_qualified(T, treat):
     return [[treat_time <= len(T) for treat_time in j] for j in treat]
 
-M1 = 100
+M1 = 1000000
 
 def gen_doctor_rank(qualified):
     ans = []
@@ -73,6 +73,22 @@ def gen_patient_available(I, J, T, patient_diseases, qualified, treat):
         ans.append((start_time, length_available))
     return ans
 
+def gen_patient_time_prefs(I, T, patient_available):
+    ans = []
+    for i in I:
+        prefs = []
+        ranks_to_give = [i for i in range(1, patient_available[i][1] + 1)]
+        random.shuffle(ranks_to_give)
+        for t in T:
+            if t in range(patient_available[i][0], patient_available[i][0] + patient_available[i][1]):
+                prefs.append(ranks_to_give.pop(0))
+            else:
+                prefs.append(M1)
+        
+        ans.append(prefs)
+    return ans
+
+
 if __name__ == "__main__":
 
     I = range(10)
@@ -100,8 +116,10 @@ if __name__ == "__main__":
     patient_diseases = gen_patient_diseases(I, K)
     allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
     patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
+    patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
 
     print("-" * 21)
     print("Diseases by patients:", patient_diseases)
     print("Doctor rank by patie:", allocate_rank)
     print("Patient start, lengt:", patient_available)
+    print("Patient time prefs  :", patient_time_prefs)

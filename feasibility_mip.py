@@ -29,11 +29,14 @@ doctor_available = gen_doctor_available(J, K, T, qualified, treat)
 patient_diseases = gen_patient_diseases(I, K)
 allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
 patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
+patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
+
 
 # print("-" * 21)
 # print("Diseases by patients:", patient_diseases)
 # print("Doctor rank by patie:", allocate_rank)
 # print("Patient start, lengt:", patient_available)
+# print("Patient time prefs   :", patient_time_prefs)
 
 I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
 
@@ -88,7 +91,14 @@ FeasibleTime = \
  m.addConstr(Y[i,j,t] <= doctor_times[j][tt] * patient_times[i][tt])
  for k in K for i in I_k[k] for j in J for t in T for tt in range(t, min(t + treat[j][k] + 1, T[-1] + 1))}
 
-m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
+# max number of appointments
+# m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
+
+# max patient satisfaction
+numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
+
+m.setObjective(gp.quicksum(Y[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + (patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
+
 
 m.optimize()
 
