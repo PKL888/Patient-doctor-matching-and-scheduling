@@ -15,25 +15,25 @@ best = gen_best(K)
 treat = gen_treat(J, K, best)
 qualified = gen_qualified(T, treat)
 
-print("Best treatment times:", best)
-print("Doctor service times:",treat)
-print("Enough time to treat:", qualified)
+# print("Best treatment times:", best)
+# print("Doctor service times:",treat)
+# print("Enough time to treat:", qualified)
 
 doctor_rank = gen_doctor_rank(qualified)
 doctor_available = gen_doctor_available(J, K, T, qualified, treat)
 
-print("-" * 21)
-print("Disease rank by doct:", doctor_rank)
-print("Doctor start, length:", doctor_available)
+# print("-" * 21)
+# print("Disease rank by doct:", doctor_rank)
+# print("Doctor start, length:", doctor_available)
 
 patient_diseases = gen_patient_diseases(I, K)
 allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
 patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
 
-print("-" * 21)
-print("Diseases by patients:", patient_diseases)
-print("Doctor rank by patie:", allocate_rank)
-print("Patient start, lengt:", patient_available)
+# print("-" * 21)
+# print("Diseases by patients:", patient_diseases)
+# print("Doctor rank by patie:", allocate_rank)
+# print("Patient start, lengt:", patient_available)
 
 I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
 
@@ -100,16 +100,20 @@ def left_pad_string(s, length):
 
 schedule = []
 for j in J:
-    print("doctor:", j, "treatment length:", treat[j])
-    print("times available", doctor_times[j])
-    print("start appointment", [sum(Y[i,j,t].x for i in I) for t in T])
+    # print("doctor:", j, "treatment length:", treat[j])
+    # print("times available", doctor_times[j])
+    # print("start appointment", [sum(Y[i,j,t].x for i in I) for t in T])
     # print("checking ", [sum((Y[i,j,tt].x) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) and not doctor_times[j][t] for t in T])
     doctor_schedule = [int(patient - 1) for patient in [sum((Y[i,j,tt].x * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]]
     doctor_schedule_with_disease = [(patient, patient_diseases[patient]) for patient in doctor_schedule]
     # print("(patient, disease)", [(int(patient - 1), patient_diseases[int(patient - 1)]) for patient in [sum((Y[i,j,tt].x * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]])
-    print("(patient, disease)", doctor_schedule_with_disease)
+    # print("(patient, disease)", doctor_schedule_with_disease)
     schedule.append(doctor_schedule)
     
+
+def print_stats():
+    print("Stats: -----------------------------------")
+    print("Number of patients allocated:", int(sum(Y[i,j,t].x for i in I for j in J for t in T)))
 
 def print_schedule(schedule):
     padding = 3
@@ -117,8 +121,12 @@ def print_schedule(schedule):
     for j in J:
         formatted_doctor_schedule = [(patient >= 0) * str(patient) + (patient < 0) * " " + "-" * (1 - doctor_times[j][t]) for t, patient in enumerate(schedule[j])]
         padded_doctor_shedule = [left_pad_string(s, padding) for s in formatted_doctor_schedule]
-        print("doctor:", j, ",".join(padded_doctor_shedule))
+        print("doctor:", j, " ".join(padded_doctor_shedule))
+
+print_stats()
 
 print_schedule(schedule)
+
+# print("disease", patient_diseases[17], [treat[j][patient_diseases[17]] for j in J], patient_times[17])
     
     
