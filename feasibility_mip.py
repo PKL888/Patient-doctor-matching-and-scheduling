@@ -4,9 +4,9 @@ import random
 
 random.seed(10)
 
-I = range(20)
-J = range(6)
-K = range(4)
+I = range(200)
+J = range(10)
+K = range(5)
 T = range(20)
 
 random.seed(10)
@@ -91,6 +91,11 @@ FeasibleTime = \
  m.addConstr(Y[i,j,t] <= doctor_times[j][tt] * patient_times[i][tt])
  for k in K for i in I_k[k] for j in J for t in T for tt in range(t, min(t + treat[j][k] + 1, T[-1] + 1))}
 
+DoctorsQualified = \
+{(i,j,k,t):
+m.addConstr( Y[i,j,t] <= qualified[j][k])
+for k in K for i in I_k[k] for j in J for t in T}
+
 
 def left_pad_string(s, length):
     if len(s) >= length:
@@ -99,8 +104,6 @@ def left_pad_string(s, length):
     return " " * (3 - len(s)) + s 
 
 def create_shcedule():
-
-
     schedule = []
     for j in J:
         # print("doctor:", j, "treatment length:", treat[j])
@@ -158,11 +161,5 @@ m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k i
 optimise_and_print_schedule()
 
 m.setParam("OutputFlag", 1)
-
-    
-
-# print()
-
-# print("disease", patient_diseases[17], [treat[j][patient_diseases[17]] for j in J], patient_times[17])
     
     
