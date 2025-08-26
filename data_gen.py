@@ -3,6 +3,7 @@ import math
 
 def gen_best(K):
     return [random.choice([1,2,3]) for k in K]
+    # return [3 for k in K]
 
 def gen_treat(J, K, best):
     return [[math.ceil(best[k] / min(max(0.000001,random.normalvariate(0.75,0.5)),1)) for k in K] for j in J]
