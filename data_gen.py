@@ -12,7 +12,7 @@ def gen_treat(J, K, best):
 def gen_qualified(T, treat):
     return [[treat_time <= len(T) for treat_time in j] for j in treat]
 
-M1 = 1000000
+M1 = 1e6
 
 def gen_doctor_rank(qualified):
     ans = []
@@ -89,15 +89,14 @@ def gen_patient_time_prefs(I, T, patient_available):
         ans.append(prefs)
     return ans
 
-
 if __name__ == "__main__":
+
+    random.seed(10)
 
     I = range(10)
     J = range(4)
     K = range(2)
     T = range(8)
-
-    random.seed(10)
 
     best = gen_best(K)
     treat = gen_treat(J, K, best)

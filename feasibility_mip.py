@@ -4,19 +4,17 @@ import random
 
 random.seed(10)
 
-I = range(1000)
-J = range(100)
+I = range(100)
+J = range(10)
 K = range(5)
 T = range(20)
-
-random.seed(10)
 
 best = gen_best(K)
 treat = gen_treat(J, K, best)
 qualified = gen_qualified(T, treat)
 
 # print("Best treatment times:", best)
-# print("Doctor service times:",treat)
+print("Doctor service times:", treat[0][2])
 # print("Enough time to treat:", qualified)
 
 doctor_rank = gen_doctor_rank(qualified)
@@ -31,12 +29,11 @@ allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
 patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
 patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
 
-
 # print("-" * 21)
 # print("Diseases by patients:", patient_diseases)
 # print("Doctor rank by patie:", allocate_rank)
 # print("Patient start, lengt:", patient_available)
-# print("Patient time prefs   :", patient_time_prefs)
+# print("Patient time prefere:", patient_time_prefs)
 
 I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
 
@@ -94,7 +91,7 @@ PatientsAreSeenAtMostOnce = \
 
 FeasibleTime = \
 {(j,k,t):
- m.addConstr(treat[j][k] * Y[i,j,t] <= sum(doctor_times[j][tt] * patient_times[i][tt] for tt in range(t, min(t + treat[j][k] + 1, len(T)))))
+ m.addConstr(treat[j][k] * Y[i,j,t] <= sum(doctor_times[j][tt] * patient_times[i][tt] for tt in range(t, min(t + treat[j][k], len(T)))))
  for k in K for i in I_k[k] for j in J for t in T}
 
 # for j in J:
@@ -108,16 +105,13 @@ DoctorsQualified = \
 m.addConstr( Y[i,j,t] <= qualified[j][k])
 for k in K for i in I_k[k] for j in J for t in T}
 
-
-
-
 def left_pad_string(s, length):
     if len(s) >= length:
         return s
     
     return " " * (3 - len(s)) + s 
 
-def create_shcedule():
+def create_schedule():
     schedule = []
     for j in J:
         # print("doctor:", j, "treatment length:", treat[j])
@@ -136,10 +130,10 @@ def print_stats():
     doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
     doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
     print("Stats: -----------------------------------")
-    print("Number of patients allocated:", int(sum(Y[i,j,t].x for i in I for j in J for t in T)))
-    print("Doctor satisfaction with diseases:", sum((doctor_disease_rank_scores[j][k]) * Y[i,j,t].x for k in K for i in I_k[k] for j in J for t in T))
-    print("Patient satisfaction with doctor and time:", sum(Y[i,j,t].x * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T))
-    print("Appointments per doctor:", int(sum(Y[i,j,t].x for i in I for j in J for t in T))/len(J))
+    print("Number of patients allocated:", round(sum(Y[i,j,t].x for i in I for j in J for t in T)))
+    print("Doctor satisfaction with diseases:", round(sum((doctor_disease_rank_scores[j][k]) * Y[i,j,t].x for k in K for i in I_k[k] for j in J for t in T)))
+    print("Patient satisfaction with doctor and time:", round(sum(Y[i,j,t].x * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T)))
+    print("Appointments per doctor:", round(sum(Y[i,j,t].x for i in I for j in J for t in T))/len(J))
 
 def print_schedule(schedule):
     padding = 3
@@ -149,33 +143,37 @@ def print_schedule(schedule):
         padded_doctor_shedule = [left_pad_string(s, padding) for s in formatted_doctor_schedule]
         print("doctor:", j, " ".join(padded_doctor_shedule))
 
-
 def optimise_and_print_schedule():
     m.optimize()
-    schedule = create_shcedule()
+
+    schedule = create_schedule()
     print_stats()
     print_schedule(schedule)
 
 m.setParam("OutputFlag", 0)
-# # max number of appointments
-print("Max appointments:")
+
+# Objective 1: Max. number of matches
+print("Objective 1: Max. number of matches")
+
 m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
 optimise_and_print_schedule()
 
-# # max patient satisfaction
-print("Max patient satisfaction")
+# Objective 2: Max. patient satisfaction
+print("Objective 2: Max. patient satisfaction")
+
 numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
-# patientTimeScore = [(numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] for k in]
-m.setObjective(gp.quicksum(Y[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + (patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
+patientDoctorScore = [[(numberAvailableDoctors[i] - allocate_rank[i][j] + 1) / numberAvailableDoctors[i] for j in J] for i in I]
+patientTimeScore = [[(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T] for i in I]
+
+m.setObjective(gp.quicksum(Y[i,j,t] * (patientDoctorScore[i][j] + patientTimeScore[i][t]) 
+                           for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
 optimise_and_print_schedule()
 
-# max doctor satisfaction with diseases
-print("Max doctor satisfaction")
+# Objective 3: Max. doctor satisfaction
+print("Objective 3: Max. doctor satisfaction")
+
 doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
 doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
+
 m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J for t in T), gp.GRB.MAXIMIZE)
 optimise_and_print_schedule()
-
-m.setParam("OutputFlag", 1)
-    
-    
