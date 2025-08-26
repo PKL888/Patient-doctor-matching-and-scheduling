@@ -83,22 +83,10 @@ PatientsAreSeenAtMostOnce = \
  m.addConstr(gp.quicksum(Y[i,j,t] for j in J for t in T) <= 1)
  for i in I}
 
-# for j in J:
-#     doctor_times[j].append(0)
-
-# for i in I:
-#     patient_times[i].append(0)
-
 FeasibleTime = \
 {(j,k,t):
  m.addConstr(treat[j][k] * Y[i,j,t] <= sum(doctor_times[j][tt] * patient_times[i][tt] for tt in range(t, min(t + treat[j][k], len(T)))))
  for k in K for i in I_k[k] for j in J for t in T}
-
-# for j in J:
-#     doctor_times[j] = doctor_times[j][:-1]
-
-# for i in I:
-#     patient_times[i] = patient_times[j][:-1]
 
 DoctorsQualified = \
 {(i,j,k,t):
@@ -165,8 +153,10 @@ numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I
 patientDoctorScore = [[(numberAvailableDoctors[i] - allocate_rank[i][j] + 1) / numberAvailableDoctors[i] for j in J] for i in I]
 patientTimeScore = [[(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T] for i in I]
 
-m.setObjective(gp.quicksum(Y[i,j,t] * (patientDoctorScore[i][j] + patientTimeScore[i][t]) 
-                           for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
+m.setObjective(gp.quicksum(Y[i,j,t] * (patientDoctorScore[i][j] + 
+                                       sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / 
+                                       treat[j][k])
+                           for k in K for i in I_k[k] for j in J for t in T), gp.GRB.MAXIMIZE)
 optimise_and_print_schedule()
 
 # Objective 3: Max. doctor satisfaction
