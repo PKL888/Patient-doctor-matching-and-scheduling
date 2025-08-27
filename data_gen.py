@@ -35,7 +35,7 @@ def gen_doctor_available(J, K, T, qualified, treat):
     for j in J:
         min_time = max(treat[j][k] for k in K if qualified[j][k])
         length_available = random.choice(range(min_time, num_time_periods + 1))
-        start_time = random.choice(range(1, num_time_periods - length_available + 2))
+        start_time = random.choice(range(0, num_time_periods - length_available + 1))
         ans.append((start_time, length_available))
     return ans
 
@@ -70,7 +70,7 @@ def gen_patient_available(I, J, T, patient_diseases, qualified, treat):
         patient_disease = patient_diseases[i]
         min_time = min(treat[j][patient_disease] for j in J if qualified[j][patient_disease])
         length_available = random.choice(range(min_time, num_time_periods + 1))
-        start_time = random.choice(range(1, num_time_periods - length_available + 2))
+        start_time = random.choice(range(0, num_time_periods - length_available + 1))
         ans.append((start_time, length_available))
     return ans
 
