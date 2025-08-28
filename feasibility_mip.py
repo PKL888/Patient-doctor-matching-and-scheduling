@@ -4,8 +4,8 @@ import random
 
 random.seed(10)
 
-I = range(100)
-J = range(10)
+I = range(1000)
+J = range(100)
 K = range(5)
 T = range(20)
 
@@ -138,13 +138,14 @@ def optimise_and_print_schedule():
     print_stats()
     print_schedule(schedule)
 
-m.setParam("OutputFlag", 0)
+# m.setParam("OutputFlag", 0)
 
-# Objective 1: Max. number of matches
-print("Objective 1: Max. number of matches")
 
-m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+# # Objective 1: Max. number of matches
+# print("Objective 1: Max. number of matches")
+
+# m.setObjective(gp.quicksum(Y[i,j,t] for i in I for j in J for t in T), gp.GRB.MAXIMIZE)
+# optimise_and_print_schedule()
 
 # Objective 2: Max. patient satisfaction
 print("Objective 2: Max. patient satisfaction")
@@ -157,13 +158,14 @@ m.setObjective(gp.quicksum(Y[i,j,t] * (patientDoctorScore[i][j] +
                                        sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / 
                                        treat[j][k])
                            for k in K for i in I_k[k] for j in J for t in T), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+m.optimize()
+# optimise_and_print_schedule()
 
-# Objective 3: Max. doctor satisfaction
-print("Objective 3: Max. doctor satisfaction")
+# # Objective 3: Max. doctor satisfaction
+# print("Objective 3: Max. doctor satisfaction")
 
-doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
-doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
+# doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
+# doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
 
-m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J for t in T), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+# m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J for t in T), gp.GRB.MAXIMIZE)
+# optimise_and_print_schedule()
