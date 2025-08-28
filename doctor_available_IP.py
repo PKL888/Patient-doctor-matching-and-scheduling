@@ -4,12 +4,13 @@ import random
 
 random.seed(10)
 
-I = range(1000)
-J = range(100)
+I = range(100)
+J = range(10)
 K = range(5)
 T = [t for t in range(20)]
 
-random.seed(10)
+START = 0
+DURATION = 1
 
 best = gen_best(K)
 treat = gen_treat(J, K, best)
@@ -30,7 +31,6 @@ patient_diseases = gen_patient_diseases(I, K)
 allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
 patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
 patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
-
 
 # print("-" * 21)
 # print("Diseases by patients:", patient_diseases)
@@ -85,9 +85,6 @@ for p in patient_available:
     patient_times.append(binary_list) 
 
 m = gp.Model("Doctor availability")
-
-START = 0
-DURATION = 1
 
 ##################################################################################
 # Variables
