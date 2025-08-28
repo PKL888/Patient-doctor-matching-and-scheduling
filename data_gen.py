@@ -89,8 +89,9 @@ def gen_patient_time_prefs(I, T, patient_available):
         ans.append(prefs)
     return ans
 
-if __name__ == "__main__":
+import json
 
+if __name__ == "__main__":
     random.seed(10)
 
     I = range(10)
@@ -102,24 +103,27 @@ if __name__ == "__main__":
     treat = gen_treat(J, K, best)
     qualified = gen_qualified(T, treat)
 
-    print("Best treatment times:", best)
-    print("Doctor service times:",treat)
-    print("Enough time to treat:", qualified)
-
     doctor_rank = gen_doctor_rank(qualified)
     doctor_available = gen_doctor_available(J, K, T, qualified, treat)
-    
-    print("-" * 21)
-    print("Disease rank by doct:", doctor_rank)
-    print("Doctor start, length:", doctor_available)
-
     patient_diseases = gen_patient_diseases(I, K)
     allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
     patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
     patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
 
-    print("-" * 21)
-    print("Diseases by patients:", patient_diseases)
-    print("Doctor rank by patie:", allocate_rank)
-    print("Patient start, lengt:", patient_available)
-    print("Patient time prefs  :", patient_time_prefs)
+    # Bundle into a dictionary
+    data = {
+        "best": best,
+        "treat": treat,
+        "qualified": qualified,
+        "doctor_rank": doctor_rank,
+        "doctor_available": doctor_available,
+        "patient_diseases": patient_diseases,
+        "allocate_rank": allocate_rank,
+        "patient_available": patient_available,
+        "patient_time_prefs": patient_time_prefs
+    }
+
+    # Save to JSON
+    with open("data.json", "w") as f:
+        json.dump(data, f, indent=4)
+    
