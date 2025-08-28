@@ -41,6 +41,21 @@ patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
 I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
 J_k = [[j for j in J if qualified[j][k]] for k in K]
 
+diseases_doctor_qualified_for = {j: [k for k in K if qualified[j][k]] for j in J}
+
+# diseases_doctor_can_treat_at_time = {(j,t): [k for k in diseases_doctor_qualified_for[j] if t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION] - treat[j][k] + 1]]
+#                                      for j in J for t in T}
+
+# patients_with_disease_that_can_be_treated_at_time = \
+# {(k,t):
+#     [i for i in I_k[k] if t in T[patient_available[i][START]: patient_available[i][START] + patient_available[i][DURATION]]] 
+# for k in K for t in T}
+
+compatible_times = {(i,j):
+                    T[max(patient_available[i][START], doctor_available[j][START]):
+      (max(0, min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1))]
+      for k in K for i in I_k[k] for j in J_k[k]}
+
 # Create a binary list for doctor availability per doctor per time period
 doctor_times = []
 for d in doctor_available:
@@ -74,26 +89,12 @@ m = gp.Model("Doctor availability")
 START = 0
 DURATION = 1
 
-# print(patient_available[1][START])
-
-compatible_times = {(i,j):
-                    T[max(patient_available[i][START], doctor_available[j][START]):
-      (max(0, min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1))]
-      for k in K for i in I_k[k] for j in J_k[k]}
-print(compatible_times[3,4])
-
+##################################################################################
 # Variables
 Y = {(i,j,t):
     m.addVar(vtype=gp.GRB.BINARY)
     for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]
     }
-# patient avaiallbe = (3,10), available in [3,12] doctor available = (2,6), available in [2,7] intersection is 3,4,5,6,7
-# if treat jk = 3, then available start times are 3,4,5
-test_pat_avail = (3,10)
-test_doc_avail = (2,6)
-test_treat_dur = 3
-# print([t for t in T[max(test_pat_avail[START], test_doc_avail[START]):
-#       (min(test_pat_avail[START] + test_pat_avail[DURATION], test_doc_avail[START] + test_doc_avail[DURATION]) - test_treat_dur + 1)]])
 
 # 1 if doctor is available at time t, 0 otherwise
 Z = {(j,t):
@@ -101,52 +102,13 @@ Z = {(j,t):
     for j in J for t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION]]
     }
 
+##################################################################################
+# Constraints
 PatientsAreAssignedOnlyOnce = \
 {(i):
  m.addConstr(gp.quicksum(Y[i,j,t] for j in J_k[k] for t in compatible_times[i,j]) <=1)
 for k in K for i in I_k[k]
 }
-
-# TODO might not be needed test speed without it
-DoctorsStartOneTreatAtATime = \
-{(j,t):
- m.addConstr(gp.quicksum(Y.get((i,j,t),0) for k in K for i in I_k[k]) <= 1)
- for j in J for t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION]]}
-
-
-diseases_doctor_qualified_for = {j: [k for k in K if qualified[j][k]] for j in J}
-
-diseases_doctor_can_treat_at_time = {(j,t): [k for k in diseases_doctor_qualified_for[j] if t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION] - treat[j][k] + 1]]
-                                     for j in J for t in T}
-
-
-patients_with_disease_that_can_be_treated_at_time = \
-{(k,t):
-    [i for i in I_k[k] if t in T[patient_available[i][START]: patient_available[i][START] + patient_available[i][DURATION]]] 
-for k in K for t in T}
-
-# for j in J:
-#     print([qualified[j][k] * treat[j][k] for k in K])
-
-
-# print("disease:", patient_diseases[0])
-# print(doctor_times[0])
-# print(patient_times[0])
-# print(compatible_times[0,0])
-# print(doctor_times[3])
-# print(doctor_available[3])
-
-
-# doctor inventory constraint
-# TODO check if making it an inequality is faster
-# DoctorAvailableConstraint = \
-# {(j,t):
-# m.addConstr(Z[j,t] == 
-#             Z[j,t-1] # previous availability
-#             + gp.quicksum(Y[i,j,t-treat[j][k]] for k in diseases_doctor_qualified_for[j] if t-treat[j][k] in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION] - treat[j][k] + 1] for i in I_k[k] if t-treat[j][k] in T[patient_available[j][START]:patient_available[j][START] + patient_available[j][DURATION] - treat[j][k] + 1]) # incoming availability
-#             - gp.quicksum(Y[i,j,t] for k in diseases_doctor_qualified_for[j] if t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION] - treat[j][k] + 1] for i in I_k[k] if t in T[patient_available[j][START]:patient_available[j][START] + patient_available[j][DURATION] - treat[j][k] + 1]) # outgoing
-#             )
-# for j in J for t in T[doctor_available[j][START] + 1:doctor_available[j][START] + doctor_available[j][DURATION]]}
 
 
 DoctorAvailableConstraint = \
@@ -163,7 +125,7 @@ DoctorsStartAvailable = \
 m.addConstr(Z[j,doctor_available[j][START]] == 1 - gp.quicksum(Y[i,j,doctor_available[j][START]] for k in diseases_doctor_qualified_for[j] for i in I_k[k] if doctor_available[j][START] in compatible_times[i,j]))
 for j in J}
 
-DoctorsEndAvailableEndOnTime = \
+DoctorsEndAvailable = \
 {j:
 m.addConstr(Z[j,doctor_available[j][START] + doctor_available[j][DURATION]-1] + 
             gp.quicksum(Y[i,j,doctor_available[j][START] + doctor_available[j][DURATION]-treat[j][k]] 
@@ -172,6 +134,7 @@ m.addConstr(Z[j,doctor_available[j][START] + doctor_available[j][DURATION]-1] +
 for j in J}
 
 #################################################################
+# printing and optimising
 def left_pad_string(s, length):
     if len(s) >= length:
         return s
@@ -241,31 +204,8 @@ m.setObjective(gp.quicksum(Y[i,j,t] *
                                 sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]
                             )
                            for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
-# optimise_and_print_schedule()
-m.optimize()
-
-"""
-DEBUGGING
-i = 65
-j = 1
-t = 18
-k = 0
-print(Y[65,1,18].x)
-print(Y[65,1,17].x)
-print(compatible_times[65,1])
-print(doctor_times[1])
-print(patient_times[65])
-print(patient_diseases[65])
-print(treat[1][0])
-print(0 in K, 65 in I_k[0], 1 in J_k[0], 18 in compatible_times[65,1])
-
-print(T[max(patient_available[i][START], doctor_available[j][START]):
-      (min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1)])
-print(max(patient_available[i][START], doctor_available[j][START]),
-      (min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1))
-print((patient_available[i][START], doctor_available[j][START]),
-      (min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1)) """
-
+optimise_and_print_schedule()
+# m.optimize()
 
 
 # # Objective 3: Max. doctor satisfaction
@@ -276,42 +216,3 @@ print((patient_available[i][START], doctor_available[j][START]),
 
 # m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
 # optimise_and_print_schedule()
-
-
-
-
-
-
-
-# Y = {(i,j,t):
-#     m.addVar(vtype=gp.GRB.BINARY)
-#     for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]
-#     }
-# patient avaiallbe = (3,10), available in [3,12] doctor available = (2,6), available in [2,7] intersection is 3,4,5,6,7
-# if treat jk = 3, then available start times are 3,4,5
-
-# test_pat_avail = (3,10)
-# test_doc_avail = (2,6)
-# test_treat_dur = 3
-# print([t for t in T[max(test_pat_avail[START], test_doc_avail[START]):
-#       (min(test_pat_avail[START] + test_pat_avail[DURATION], test_doc_avail[START] + test_doc_avail[DURATION]) - test_treat_dur + 1)]])
-
-# Yvals = {key: Y[key].x for key in Y}
-# Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
-# schedule = create_schedule(Ys)
-
-# padding = len(str(len(I))) + 4
-# print(padding)
-# print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
-# for j in J:
-#     formatted_doctor_schedule = [(patient >= 0) * str((patient, treat[j][patient_diseases[patient]])) + (patient < 0) * " " + "-" * (1 - doctor_times[j][t]) for t, patient in enumerate(schedule[j])]
-#     padded_doctor_shedule = [left_pad_string(s, padding) for s in formatted_doctor_schedule]
-#     print("doctor:", j, " ".join(padded_doctor_shedule))
-
-# padding = len(str(len(I))) + 4
-# print(padding)
-# print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
-# for j in J:
-#     formatted_doctor_schedule = [(patient >= 0) * str((patient, patient_times[patient][t])) + (patient < 0) * " " + "-" * (1 - doctor_times[j][t]) for t, patient in enumerate(schedule[j])]
-#     padded_doctor_shedule = [left_pad_string(s, padding) for s in formatted_doctor_schedule]
-#     print("doctor:", j, " ".join(padded_doctor_shedule))
