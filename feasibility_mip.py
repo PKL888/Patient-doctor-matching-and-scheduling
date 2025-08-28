@@ -4,8 +4,8 @@ import random
 
 random.seed(10)
 
-I = range(1000)
-J = range(100)
+I = range(100)
+J = range(10)
 K = range(5)
 T = range(20)
 
