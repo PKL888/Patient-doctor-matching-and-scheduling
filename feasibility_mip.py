@@ -2,38 +2,22 @@ import gurobipy as gp
 from data_gen import *
 import random
 
-random.seed(10)
 
-I = range(100)
-J = range(10)
-K = range(5)
-T = range(20)
+import json
 
-best = gen_best(K)
-treat = gen_treat(J, K, best)
-qualified = gen_qualified(T, treat)
+with open("data_seed10_I100_J10_K4_T20.json", "r") as f:
+    data = json.load(f)
 
-# print("Best treatment times:", best)
-print("Doctor service times:", treat[0][2])
-# print("Enough time to treat:", qualified)
 
-doctor_rank = gen_doctor_rank(qualified)
-doctor_available = gen_doctor_available(J, K, T, qualified, treat)
 
-# print("-" * 21)
-# print("Disease rank by doct:", doctor_rank)
-# print("Doctor start, length:", doctor_available)
+# put everything in the global namespace
+globals().update(data)
 
-patient_diseases = gen_patient_diseases(I, K)
-allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
-patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
-patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
+I = range(problem_size["patients"])
+J = range(problem_size["doctors"])
+K = range(problem_size["diseases"])
+T = range(problem_size["time periods"])
 
-# print("-" * 21)
-# print("Diseases by patients:", patient_diseases)
-# print("Doctor rank by patie:", allocate_rank)
-# print("Patient start, lengt:", patient_available)
-# print("Patient time prefere:", patient_time_prefs)
 
 I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
 

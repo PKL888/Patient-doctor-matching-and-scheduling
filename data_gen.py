@@ -92,12 +92,20 @@ def gen_patient_time_prefs(I, T, patient_available):
 import json
 
 if __name__ == "__main__":
-    random.seed(10)
+    SEED = 10
+    random.seed(SEED)
 
-    I = range(10)
-    J = range(4)
-    K = range(2)
-    T = range(8)
+    problem_size = {
+        "patients": 100,
+        "doctors":  10,
+        "diseases": 4,
+        "time periods": 20
+    }
+
+    I = range(problem_size["patients"])
+    J = range(problem_size["doctors"])
+    K = range(problem_size["diseases"])
+    T = range(problem_size["time periods"])
 
     best = gen_best(K)
     treat = gen_treat(J, K, best)
@@ -112,6 +120,7 @@ if __name__ == "__main__":
 
     # Bundle into a dictionary
     data = {
+        "problem_size": problem_size,
         "best": best,
         "treat": treat,
         "qualified": qualified,
@@ -124,6 +133,6 @@ if __name__ == "__main__":
     }
 
     # Save to JSON
-    with open("data.json", "w") as f:
+    with open(f"data_seed{SEED}_I{problem_size['patients']}_J{problem_size["doctors"]}_K{problem_size["diseases"]}_T{problem_size["time periods"]}.json", "w") as f:
         json.dump(data, f, indent=4)
     
