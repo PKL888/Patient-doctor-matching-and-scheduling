@@ -166,13 +166,34 @@ def optimise_and_print_schedule():
 
 m.setParam("OutputFlag", 0)
 
+import re
+
+# function for taking from the log and checking against original number of vars and constraints
+def parse_presolve_log(logfile="gurobi_presolve.log"):
+    presolve_info = {
+        "rows_removed": 0,
+        "columns_removed": 0,
+        "nonzeros_removed": 0
+    }
+    
+    with open(logfile, "r") as f:
+        for line in f:
+            # match "Presolve removed X rows and Y columns"
+            match = re.search(r"Presolve removed (\d+) rows? and (\d+) columns?", line)
+            if match:
+                presolve_info["num_variables"] = m.NumVars - int(match.group(2))
+                presolve_info["num_constraints"] = m.NumConstrs - int(match.group(1))
+
+    return presolve_info
+
+
 model_results = {}
 
 m.update()
 
-# Record presolve info
+# Record before presolve info
 setup_time = time.time() - start_time
-presolve_info = {
+before_presolve_info = {
     "num_variables": m.NumVars,
     "num_constraints": m.NumConstrs,
     "num_nonzeros": m.NumNZs,
@@ -180,11 +201,16 @@ presolve_info = {
 }
 
 # Just make sure to store presolve info:
-model_results = {"presolve_info": presolve_info}
+model_results["before_presolve_info"] = before_presolve_info
 
 def optimise_and_collect(objective_name):
-
+    start_obj_time = time.time()
     m.optimize()
+    end_obj_time = time.time()
+    after_presolve_info = parse_presolve_log("gurobi_presolve.log")
+    
+    after_presolve_info["run_time_seconds"] = end_obj_time - start_obj_time
+
     Yvals = {key: Y[key].x for key in Y}
     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
 
@@ -229,8 +255,12 @@ def optimise_and_collect(objective_name):
 
     return {
         "stats": stats,
-        "schedule": schedule_dict
+        "schedule": schedule_dict,
+        "after_presolve_info": after_presolve_info
     }
+
+m.setParam("OutputFlag", 1)  # enable log
+m.setParam("LogFile", "gurobi_presolve.log")
 
 # Objective 1: Max. number of matches
 print("Objective 1: Max. number of matches")
