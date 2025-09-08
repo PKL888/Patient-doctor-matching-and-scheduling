@@ -1,9 +1,15 @@
 {
+    "presolve_info": {
+        "num_variables": 5136,
+        "num_constraints": 235,
+        "num_nonzeros": 15283,
+        "setup_time_seconds": 0.017238616943359375
+    },
     "max_matches": {
         "stats": {
             "objective": "Max matches",
             "objective_value": 61.0,
-            "runtime": 0.0,
+            "runtime": 0.0009999275207519531,
             "mip_gap": 0.0,
             "nodes": 1.0,
             "iterations": 2119.0,
@@ -240,7 +246,7 @@
         "stats": {
             "objective": "Max patient satisfaction",
             "objective_value": 101.09558740479793,
-            "runtime": 0.006999969482421875,
+            "runtime": 0.0,
             "mip_gap": 0.0,
             "nodes": 1.0,
             "iterations": 1437.0,

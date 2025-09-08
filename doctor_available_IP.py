@@ -2,6 +2,7 @@ import gurobipy as gp
 from data_gen import *
 import random
 import json
+import time
 
 with open("data_seed10_I100_J10_K4_T20.json", "r") as f:
     data = json.load(f)
@@ -66,6 +67,9 @@ for p in patient_available:
     patient_times.append(binary_list) 
 
 m = gp.Model("Doctor availability")
+
+# start time for pre-solver
+start_time = time.time()
 
 ##################################################################################
 # Variables
@@ -164,7 +168,22 @@ m.setParam("OutputFlag", 0)
 
 model_results = {}
 
+m.update()
+
+# Record presolve info
+setup_time = time.time() - start_time
+presolve_info = {
+    "num_variables": m.NumVars,
+    "num_constraints": m.NumConstrs,
+    "num_nonzeros": m.NumNZs,
+    "setup_time_seconds": setup_time
+}
+
+# Just make sure to store presolve info:
+model_results = {"presolve_info": presolve_info}
+
 def optimise_and_collect(objective_name):
+
     m.optimize()
     Yvals = {key: Y[key].x for key in Y}
     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
@@ -212,7 +231,6 @@ def optimise_and_collect(objective_name):
         "stats": stats,
         "schedule": schedule_dict
     }
-
 
 # Objective 1: Max. number of matches
 print("Objective 1: Max. number of matches")

@@ -8,7 +8,6 @@ def left_pad_string(s, length):
 
 def print_schedule(schedule):
     """Pretty-print the doctor schedules."""
-    # Find max schedule length (number of time periods)
     T = len(next(iter(schedule.values())))
     padding = len(str(T))
 
@@ -24,8 +23,25 @@ def print_schedule(schedule):
 
 
 def print_results(results):
-    """Print stats + schedule for each objective."""
+    """Print presolve info, stats, and schedule for each objective."""
+
+    # Print presolve info if available
+    if "presolve_info" in results:
+        presolve = results["presolve_info"]
+        print("="*60)
+        print("Presolve / Model setup info:")
+        print("-"*60)
+        print(f"Number of variables:       {presolve['num_variables']}")
+        print(f"Number of constraints:     {presolve['num_constraints']}")
+        print(f"Number of nonzeros:        {presolve['num_nonzeros']}")
+        print(f"Setup / presolve time (s): {presolve['setup_time_seconds']:.4f}")
+        print("="*60 + "\n")
+
+    # Print objective-specific stats
     for obj_name, data in results.items():
+        if obj_name == "presolve_info":
+            continue  # already printed
+
         stats = data["stats"]
         schedule = data["schedule"]
 
@@ -38,7 +54,7 @@ def print_results(results):
         print(f"Doctor satisfaction:     {stats['doctor_satisfaction']}")
         print(f"Appointments per doctor: {stats['appointments_per_doctor']:.2f}")
 
-        # NEW: solver stats
+        # Solver stats
         print("\nSolver stats:")
         print(f"Runtime (s):             {stats['runtime']:.2f}")
         if stats["mip_gap"] is not None:
@@ -52,9 +68,7 @@ def print_results(results):
         print("="*60 + "\n")
 
 
-
 if __name__ == "__main__":
-
     with open("all_model_results.json", "r") as f:
         all_model_results = json.load(f)
 
