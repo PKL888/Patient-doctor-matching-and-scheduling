@@ -181,6 +181,8 @@ def parse_presolve_log(logfile="gurobi_presolve.log"):
             # match "Presolve removed X rows and Y columns"
             match = re.search(r"Presolve removed (\d+) rows? and (\d+) columns?", line)
             if match:
+                # calculate the variables and constraints from before presolve minus
+                # the rows and cols removed in presolve
                 presolve_info["num_variables"] = m.NumVars - int(match.group(2))
                 presolve_info["num_constraints"] = m.NumConstrs - int(match.group(1))
 
