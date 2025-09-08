@@ -175,14 +175,33 @@ def optimise_and_collect(objective_name):
     # Collect stats
     numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
     doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
-    doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
+    doctor_disease_rank_scores = [
+        [
+            qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] 
+            + (1 - qualified[j][k]) * -M1 
+            for k in K
+        ] 
+        for j in J
+    ]
 
     stats = {
         "objective": objective_name,
-        "objective_value": m.objVal,
+        "objective_value": m.objVal if m.SolCount > 0 else None,
+        "runtime": m.Runtime,
+        "mip_gap": m.MIPGap if m.IsMIP else None,
+        "nodes": m.NodeCount,
+        "iterations": m.IterCount,
+        "solutions_found": m.SolCount,
         "num_patients_allocated": round(sum(Ys[i,j,t] for i in I for j in J for t in T)),
-        "patient_satisfaction": round(sum(Ys[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T)),
-        "doctor_satisfaction": round(sum((doctor_disease_rank_scores[j][k]) * Ys[i,j,t] for k in K for i in I_k[k] for j in J for t in T)),
+        "patient_satisfaction": round(sum(
+            Ys[i,j,t] * (
+                (numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] 
+                + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]
+            ) 
+            for i in I for j in J for t in T)),
+        "doctor_satisfaction": round(sum(
+            (doctor_disease_rank_scores[j][k]) * Ys[i,j,t] 
+            for k in K for i in I_k[k] for j in J for t in T)),
         "appointments_per_doctor": round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J),
     }
 
@@ -193,6 +212,7 @@ def optimise_and_collect(objective_name):
         "stats": stats,
         "schedule": schedule_dict
     }
+
 
 # Objective 1: Max. number of matches
 print("Objective 1: Max. number of matches")

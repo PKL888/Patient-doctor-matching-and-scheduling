@@ -32,14 +32,25 @@ def print_results(results):
         print("\n" + "="*60)
         print(f"Objective: {stats['objective']}")
         print("-"*60)
-        print(f"Objective value:         {stats['objective_value']:.2f}")
+        print(f"Objective value:         {stats['objective_value']:.2f}" if stats["objective_value"] is not None else "Objective value:   None")
         print(f"Patients allocated:      {stats['num_patients_allocated']}")
         print(f"Patient satisfaction:    {stats['patient_satisfaction']}")
         print(f"Doctor satisfaction:     {stats['doctor_satisfaction']}")
         print(f"Appointments per doctor: {stats['appointments_per_doctor']:.2f}")
-        
+
+        # NEW: solver stats
+        print("\nSolver stats:")
+        print(f"Runtime (s):             {stats['runtime']:.2f}")
+        if stats["mip_gap"] is not None:
+            print(f"MIP Gap:                 {stats['mip_gap']:.4f}")
+        print(f"Nodes explored:          {stats['nodes']}")
+        print(f"Iterations:              {stats['iterations']}")
+        print(f"Solutions found:         {stats['solutions_found']}")
+
+        # Schedule output
         print_schedule(schedule)
         print("="*60 + "\n")
+
 
 
 if __name__ == "__main__":
