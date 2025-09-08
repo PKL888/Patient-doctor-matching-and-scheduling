@@ -3,13 +3,13 @@
         "num_variables": 5136,
         "num_constraints": 235,
         "num_nonzeros": 15283,
-        "setup_time_seconds": 0.017437458038330078
+        "setup_time_seconds": 0.02055501937866211
     },
     "max_matches": {
         "stats": {
             "objective": "Max matches",
             "objective_value": 61.0,
-            "runtime": 0.003000020980834961,
+            "runtime": 0.0839998722076416,
             "mip_gap": 0.0,
             "nodes": 1.0,
             "iterations": 2119.0,
@@ -247,14 +247,14 @@
             "nonzeros_removed": 0,
             "num_variables": 5001,
             "num_constraints": 214,
-            "run_time_seconds": 0.004016399383544922
+            "run_time_seconds": 0.08494210243225098
         }
     },
     "patient_satisfaction": {
         "stats": {
             "objective": "Max patient satisfaction",
             "objective_value": 101.09558740479793,
-            "runtime": 0.002000093460083008,
+            "runtime": 0.15199995040893555,
             "mip_gap": 0.0,
             "nodes": 1.0,
             "iterations": 1437.0,
@@ -492,14 +492,14 @@
             "nonzeros_removed": 0,
             "num_variables": 5100,
             "num_constraints": 217,
-            "run_time_seconds": 0.0020003318786621094
+            "run_time_seconds": 0.15336871147155762
         }
     },
     "doctor_satisfaction": {
         "stats": {
             "objective": "Max doctor satisfaction",
             "objective_value": 44.08333333333333,
-            "runtime": 0.002000093460083008,
+            "runtime": 0.12800002098083496,
             "mip_gap": 0.0,
             "nodes": 1.0,
             "iterations": 2793.0,
@@ -737,7 +737,7 @@
             "nonzeros_removed": 0,
             "num_variables": 5006,
             "num_constraints": 214,
-            "run_time_seconds": 0.0019979476928710938
+            "run_time_seconds": 0.13074088096618652
         }
     }
 }

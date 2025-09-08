@@ -268,7 +268,7 @@ m.setParam("LogFile", "gurobi_presolve.log")
 print("Objective 1: Max. number of matches")
 
 m.setObjective(gp.quicksum(Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+#optimise_and_print_schedule()
 model_results["max_matches"] = optimise_and_collect("Max matches")
 
 # Objective 2: Max. patient satisfaction
@@ -285,7 +285,7 @@ m.setObjective(gp.quicksum(Y[i,j,t] *
                                 sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]
                             )
                            for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+#optimise_and_print_schedule()
 # m.optimize()
 model_results["patient_satisfaction"] = optimise_and_collect("Max patient satisfaction")
 
@@ -297,7 +297,7 @@ doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
 doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
 
 m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+#optimise_and_print_schedule()
 model_results["doctor_satisfaction"] = optimise_and_collect("Max doctor satisfaction")
 
 # write model results into json file

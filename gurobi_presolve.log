@@ -1666,3 +1666,139 @@ Solution count 5: 44.0833 44 43.75 ... 31.8333
 
 Optimal solution found (tolerance 1.00e-04)
 Best objective 4.408333333333e+01, best bound 4.408333333333e+01, gap 0.0000%
+
+Gurobi 12.0.3 (win64) logging started Mon Sep  8 17:12:28 2025
+
+Set parameter LogFile to value "gurobi_presolve.log"
+Gurobi Optimizer version 12.0.3 build v12.0.3rc0 (win64 - Windows 11.0 (26100.2))
+
+CPU model: 13th Gen Intel(R) Core(TM) i7-13700H, instruction set [SSE2|AVX|AVX2]
+Thread count: 14 physical cores, 20 logical processors, using up to 20 threads
+
+Optimize a model with 235 rows, 5136 columns and 15283 nonzeros
+Model fingerprint: 0xcc1b3a68
+Variable types: 0 continuous, 5136 integer (5136 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 41.0000000
+Presolve removed 21 rows and 135 columns
+Presolve time: 0.03s
+Presolved: 214 rows, 5001 columns, 14840 nonzeros
+Variable types: 0 continuous, 5001 integer (5001 binary)
+
+Root relaxation: objective 6.166667e+01, 1146 iterations, 0.03 seconds (0.05 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0   61.66667    0    4   41.00000   61.66667  50.4%     -    0s
+H    0     0                      61.0000000   61.66667  1.09%     -    0s
+     0     0   61.66667    0    4   61.00000   61.66667  1.09%     -    0s
+
+Explored 1 nodes (2119 simplex iterations) in 0.08 seconds (0.11 work units)
+Thread count was 20 (of 20 available processors)
+
+Solution count 2: 61 41 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 6.100000000000e+01, best bound 6.100000000000e+01, gap 0.0000%
+Gurobi Optimizer version 12.0.3 build v12.0.3rc0 (win64 - Windows 11.0 (26100.2))
+
+CPU model: 13th Gen Intel(R) Core(TM) i7-13700H, instruction set [SSE2|AVX|AVX2]
+Thread count: 14 physical cores, 20 logical processors, using up to 20 threads
+
+Optimize a model with 235 rows, 5136 columns and 15283 nonzeros
+Model fingerprint: 0x09df5406
+Variable types: 0 continuous, 5136 integer (5136 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [2e-01, 2e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+
+Loaded MIP start from previous solve with objective 69.4967
+
+Presolve removed 18 rows and 36 columns
+Presolve time: 0.02s
+Presolved: 217 rows, 5100 columns, 15134 nonzeros
+Variable types: 0 continuous, 5100 integer (5100 binary)
+
+Root relaxation: objective 1.013566e+02, 698 iterations, 0.02 seconds (0.03 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0  101.35655    0    7   69.49674  101.35655  45.8%     -    0s
+H    0     0                      99.2624408  101.35655  2.11%     -    0s
+H    0     0                      99.5615861  101.35655  1.80%     -    0s
+H    0     0                     100.5929251  101.35655  0.76%     -    0s
+H    0     0                     100.8920704  101.35655  0.46%     -    0s
+     0     0  101.30408    0    7  100.89207  101.30408  0.41%     -    0s
+     0     0  101.30408    0    7  100.89207  101.30408  0.41%     -    0s
+     0     0  101.26756    0   25  100.89207  101.26756  0.37%     -    0s
+H    0     0                     100.9473374  101.26756  0.32%     -    0s
+     0     0  101.11863    0   64  100.94734  101.11863  0.17%     -    0s
+     0     0  101.11863    0    7  100.94734  101.11863  0.17%     -    0s
+*    0     0               0     101.0955874  101.09559  0.00%     -    0s
+
+Cutting planes:
+  Gomory: 4
+  Cover: 1
+  Zero half: 4
+
+Explored 1 nodes (1437 simplex iterations) in 0.15 seconds (0.11 work units)
+Thread count was 20 (of 20 available processors)
+
+Solution count 8: 101.096 100.947 100.892 ... 69.4967
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 1.010955874048e+02, best bound 1.010955874048e+02, gap 0.0000%
+Gurobi Optimizer version 12.0.3 build v12.0.3rc0 (win64 - Windows 11.0 (26100.2))
+
+CPU model: 13th Gen Intel(R) Core(TM) i7-13700H, instruction set [SSE2|AVX|AVX2]
+Thread count: 14 physical cores, 20 logical processors, using up to 20 threads
+
+Optimize a model with 235 rows, 5136 columns and 15283 nonzeros
+Model fingerprint: 0x2054af25
+Variable types: 0 continuous, 5136 integer (5136 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [3e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+
+Loaded MIP start from previous solve with objective 31.8333
+
+Presolve removed 21 rows and 130 columns
+Presolve time: 0.03s
+Presolved: 214 rows, 5006 columns, 14855 nonzeros
+Found heuristic solution: objective 32.1666667
+Variable types: 0 continuous, 5006 integer (5006 binary)
+
+Root relaxation: objective 4.425000e+01, 897 iterations, 0.02 seconds (0.03 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0   44.25000    0    5   32.16667   44.25000  37.6%     -    0s
+H    0     0                      43.7500000   44.25000  1.14%     -    0s
+H    0     0                      44.0000000   44.25000  0.57%     -    0s
+H    0     0                      44.0833333   44.25000  0.38%     -    0s
+     0     0   44.25000    0    7   44.08333   44.25000  0.38%     -    0s
+     0     0   44.25000    0    5   44.08333   44.25000  0.38%     -    0s
+     0     0 infeasible    0        44.08333   44.08333  0.00%     -    0s
+
+Cutting planes:
+  Gomory: 1
+  Zero half: 2
+
+Explored 1 nodes (2793 simplex iterations) in 0.13 seconds (0.15 work units)
+Thread count was 20 (of 20 available processors)
+
+Solution count 5: 44.0833 44 43.75 ... 31.8333
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.408333333333e+01, best bound 4.408333333333e+01, gap 0.0000%
