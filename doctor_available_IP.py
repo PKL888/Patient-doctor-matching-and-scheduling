@@ -162,11 +162,44 @@ def optimise_and_print_schedule():
 
 m.setParam("OutputFlag", 0)
 
+model_results = {}
+
+def optimise_and_collect(objective_name):
+    m.optimize()
+    Yvals = {key: Y[key].x for key in Y}
+    Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
+
+    # Build schedule
+    schedule = create_schedule(Ys)
+
+    # Collect stats
+    numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
+    doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
+    doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
+
+    stats = {
+        "objective": objective_name,
+        "objective_value": m.objVal,
+        "num_patients_allocated": round(sum(Ys[i,j,t] for i in I for j in J for t in T)),
+        "patient_satisfaction": round(sum(Ys[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T)),
+        "doctor_satisfaction": round(sum((doctor_disease_rank_scores[j][k]) * Ys[i,j,t] for k in K for i in I_k[k] for j in J for t in T)),
+        "appointments_per_doctor": round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J),
+    }
+
+    # Convert schedule to JSON-friendly structure
+    schedule_dict = {f"doctor_{j}": schedule[j] for j in J}
+
+    return {
+        "stats": stats,
+        "schedule": schedule_dict
+    }
+
 # Objective 1: Max. number of matches
 print("Objective 1: Max. number of matches")
 
 m.setObjective(gp.quicksum(Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
 optimise_and_print_schedule()
+model_results["max_matches"] = optimise_and_collect("Max matches")
 
 # Objective 2: Max. patient satisfaction
 print("Objective 2: Max. patient satisfaction")
@@ -184,6 +217,7 @@ m.setObjective(gp.quicksum(Y[i,j,t] *
                            for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
 optimise_and_print_schedule()
 # m.optimize()
+model_results["patient_satisfaction"] = optimise_and_collect("Max patient satisfaction")
 
 
 # Objective 3: Max. doctor satisfaction
@@ -194,3 +228,9 @@ doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[
 
 m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
 optimise_and_print_schedule()
+model_results["doctor_satisfaction"] = optimise_and_collect("Max doctor satisfaction")
+
+# write model results into json file
+with open("all_model_results.json", "w") as f:
+    json.dump(model_results, f, indent=4)
+

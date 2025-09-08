@@ -133,6 +133,6 @@ if __name__ == "__main__":
     }
 
     # Save to JSON
-    with open(f"data_seed{SEED}_I{problem_size['patients']}_J{problem_size["doctors"]}_K{problem_size["diseases"]}_T{problem_size["time periods"]}.json", "w") as f:
+    with open(f"data_seed{SEED}_I{problem_size['patients']}_J{problem_size['doctors']}_K{problem_size['diseases']}_T{problem_size['time periods']}.json", "w") as f:
         json.dump(data, f, indent=4)
     
