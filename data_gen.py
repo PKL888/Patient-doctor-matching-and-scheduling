@@ -96,7 +96,7 @@ if __name__ == "__main__":
     random.seed(SEED)
 
     problem_size = {
-        "patients": 100,
+        "patients": 1000,
         "doctors":  10,
         "diseases": 4,
         "time periods": 20
