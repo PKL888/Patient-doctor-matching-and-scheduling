@@ -72,6 +72,8 @@ def print_results(results):
         if "after_presolve_info" in data:
             ap = data["after_presolve_info"]
             print("\nAFTER presolve info (for this objective):")
+            print(f"Number of columns removed:   {ap['columns_removed']}")
+            print(f"Number of rows removed:     {ap['rows_removed']}")
             print(f"Number of variables:     {ap['num_variables']}")
             print(f"Number of constraints:   {ap['num_constraints']}")
             print(f"Elapsed time (s):        {ap['run_time_seconds']:.4f}")
