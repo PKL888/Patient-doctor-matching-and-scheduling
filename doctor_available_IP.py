@@ -4,7 +4,8 @@ import random
 import json
 import time
 
-with open("data_seed10_I100_J10_K4_T20.json", "r") as f:
+data_name = "data_seed10_I100_J10_K4_T20"
+with open(f"{data_name}.json", "r") as f:
     data = json.load(f)
 
 
@@ -301,6 +302,6 @@ m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k i
 model_results["doctor_satisfaction"] = optimise_and_collect("Max doctor satisfaction")
 
 # write model results into json file
-with open("all_model_results.json", "w") as f:
+with open(f"OUTPUT_{data_name}.json", "w") as f:
     json.dump(model_results, f, indent=4)
 

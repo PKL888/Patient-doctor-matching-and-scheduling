@@ -83,7 +83,10 @@ def print_results(results):
 
 
 if __name__ == "__main__":
-    with open("all_model_results.json", "r") as f:
+
+    data_name = "OUTPUT_data_seed10_I100_J10_K4_T20"
+
+    with open(f"{data_name}.json", "r") as f:
         all_model_results = json.load(f)
 
     print_results(all_model_results)
