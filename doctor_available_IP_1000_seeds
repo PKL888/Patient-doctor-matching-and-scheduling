@@ -1,0 +1,272 @@
+import gurobipy as gp
+from data_gen import *
+import random
+import json
+import time
+
+with open("all_data_1000_seeds_I100_J10_K4_T20.json", "r") as f:
+    all_data = json.load(f)
+
+all_model_results = {}
+objectives = ["max_matches", "patient_satisfaction", "doctor_satisfaction"]
+all_model_results = {obj: {} for obj in objectives}
+
+for obj in objectives:
+        
+    for seed, data in all_data.items():
+
+        globals().update(data)
+
+        I = range(problem_size["patients"])
+        J = range(problem_size["doctors"])
+        K = range(problem_size["diseases"])
+        T = [t for t in range(problem_size["time periods"])]
+
+        START = 0
+        DURATION = 1
+
+        I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
+        J_k = [[j for j in J if qualified[j][k]] for k in K]
+
+        diseases_doctor_qualified_for = {j: [k for k in K if qualified[j][k]] for j in J}
+
+        compatible_times = {(i,j):
+                            T[max(patient_available[i][START], doctor_available[j][START]):
+            (max(0, min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1))]
+            for k in K for i in I_k[k] for j in J_k[k]}
+
+        # Create a binary list for doctor availability per doctor per time period
+        doctor_times = []
+        for d in doctor_available:
+            time_list = []
+            binary_list = []
+            for j in range(d[0], d[0]+d[1]):
+                time_list.append(j)
+            for i in range(len(T)):
+                if i in time_list:
+                    binary_list.append(1)
+                else:
+                    binary_list.append(0)
+            doctor_times.append(binary_list)
+
+        # Create a binary list for patient availability per patient per time period 
+        patient_times = []
+        for p in patient_available:
+            time_list = []
+            binary_list = []
+            for j in range(p[0], p[0]+p[1]):
+                time_list.append(j)
+            for i in range(len(T)):
+                if i in time_list:
+                    binary_list.append(1)
+                else:
+                    binary_list.append(0)
+            patient_times.append(binary_list) 
+
+        m = gp.Model("Doctor availability")
+
+        # start time for pre-solver
+        start_time = time.time()
+
+        ##################################################################################
+        # Variables
+        Y = {(i,j,t):
+            m.addVar(vtype=gp.GRB.BINARY)
+            for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]
+            }
+
+        # 1 if doctor is available at time t, 0 otherwise
+        Z = {(j,t):
+            m.addVar(vtype=gp.GRB.BINARY)
+            for j in J for t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION]]
+            }
+
+        ##################################################################################
+        # Constraints
+        PatientsAreAssignedOnlyOnce = \
+        {(i):
+        m.addConstr(gp.quicksum(Y[i,j,t] for j in J_k[k] for t in compatible_times[i,j]) <=1)
+        for k in K for i in I_k[k]
+        }
+
+
+        DoctorAvailableConstraint = \
+        {(j,t):
+        m.addConstr(Z[j,t] == 
+                    Z[j,t-1] # previous availability
+                    + gp.quicksum(Y[i,j,t-treat[j][k]] for k in diseases_doctor_qualified_for[j] for i in I_k[k] if t-treat[j][k] in compatible_times[i,j]) # incoming availability
+                    - gp.quicksum(Y[i,j,t] for k in diseases_doctor_qualified_for[j] for i in I_k[k] if t in compatible_times[i,j]) # outgoing
+                    )
+        for j in J for t in T[doctor_available[j][START] + 1:doctor_available[j][START] + doctor_available[j][DURATION]]}
+
+        DoctorsStartAvailable = \
+        {j:
+        m.addConstr(Z[j,doctor_available[j][START]] == 1 - gp.quicksum(Y[i,j,doctor_available[j][START]] for k in diseases_doctor_qualified_for[j] for i in I_k[k] if doctor_available[j][START] in compatible_times[i,j]))
+        for j in J}
+
+        DoctorsEndAvailable = \
+        {j:
+        m.addConstr(Z[j,doctor_available[j][START] + doctor_available[j][DURATION]-1] + 
+                    gp.quicksum(Y[i,j,doctor_available[j][START] + doctor_available[j][DURATION]-treat[j][k]] 
+                                for k in diseases_doctor_qualified_for[j] 
+                                for i in I_k[k] if doctor_available[j][START] + doctor_available[j][DURATION] - treat[j][k] in compatible_times[i,j]) == 1)
+        for j in J}
+
+        #################################################################
+        # printing and optimising
+        def left_pad_string(s, length):
+            if len(s) >= length:
+                return s
+            
+            return " " * (length - len(s)) + s 
+
+        def create_schedule(Ys):
+            schedule = []
+            for j in J:
+                doctor_schedule = [int(patient - 1) for patient in [sum((Ys[i,j,tt] * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]]
+                schedule.append(doctor_schedule)
+            return schedule
+
+        m.setParam("OutputFlag", 0)
+
+        import re
+
+        # function for taking from the log and checking against original number of vars and constraints
+        def parse_presolve_log(logfile="gurobi_presolve.log"):
+            presolve_info = {
+                "rows_removed": 0,
+                "columns_removed": 0,
+                "nonzeros_removed": 0
+            }
+            
+            with open(logfile, "r") as f:
+                for line in f:
+                    # match "Presolve removed X rows and Y columns"
+                    match = re.search(r"Presolve removed (\d+) rows? and (\d+) columns?", line)
+                    if match:
+                        # calculate the variables and constraints from before presolve minus
+                        # the rows and cols removed in presolve
+                        presolve_info["num_variables"] = m.NumVars - int(match.group(2))
+                        presolve_info["num_constraints"] = m.NumConstrs - int(match.group(1))
+
+            return presolve_info
+
+
+        model_results = {}
+
+        m.update()
+
+        # Record before presolve info
+        setup_time = time.time() - start_time
+        before_presolve_info = {
+            "num_variables": m.NumVars,
+            "num_constraints": m.NumConstrs,
+            "num_nonzeros": m.NumNZs,
+            "setup_time_seconds": setup_time
+        }
+
+        # Just make sure to store presolve info:
+        model_results["before_presolve_info"] = before_presolve_info
+
+        def optimise_and_collect(objective_name):
+            start_obj_time = time.time()
+            m.optimize()
+            end_obj_time = time.time()
+            after_presolve_info = parse_presolve_log("gurobi_presolve.log")
+            
+            after_presolve_info["run_time_seconds"] = end_obj_time - start_obj_time
+
+            Yvals = {key: Y[key].x for key in Y}
+            Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
+
+            # Build schedule
+            schedule = create_schedule(Ys)
+
+            # Collect stats
+            numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
+            doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
+            doctor_disease_rank_scores = [
+                [
+                    qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] 
+                    + (1 - qualified[j][k]) * -M1 
+                    for k in K
+                ] 
+                for j in J
+            ]
+
+            stats = {
+                "objective": objective_name,
+                "objective_value": m.objVal if m.SolCount > 0 else None,
+                "runtime": m.Runtime,
+                "mip_gap": m.MIPGap if m.IsMIP else None,
+                "nodes": m.NodeCount,
+                "iterations": m.IterCount,
+                "solutions_found": m.SolCount,
+                "num_patients_allocated": round(sum(Ys[i,j,t] for i in I for j in J for t in T)),
+                "patient_satisfaction": round(sum(
+                    Ys[i,j,t] * (
+                        (numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] 
+                        + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]
+                    ) 
+                    for i in I for j in J for t in T)),
+                "doctor_satisfaction": round(sum(
+                    (doctor_disease_rank_scores[j][k]) * Ys[i,j,t] 
+                    for k in K for i in I_k[k] for j in J for t in T)),
+                "appointments_per_doctor": round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J),
+            }
+
+            # Convert schedule to JSON-friendly structure
+            schedule_dict = {f"doctor_{j}": schedule[j] for j in J}
+
+            return {
+                "stats": stats,
+                "schedule": schedule_dict,
+                "after_presolve_info": after_presolve_info
+            }
+
+        m.setParam("OutputFlag", 0)  # enable log
+        m.setParam("LogFile", "gurobi_presolve.log")
+
+        # Set the objective depending on `obj`
+        if obj == "max_matches":
+            # Objective 1: Max. number of matches
+            #print("Objective 1: Max. number of matches")
+            m.setObjective(gp.quicksum(Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
+
+        # Set the objective depending on `obj`
+        elif obj == "patient_satisfaction":
+            # Objective 2: Max. patient satisfaction
+            #print("Objective 2: Max. patient satisfaction")
+
+            numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
+            patientDoctorScore = [[(numberAvailableDoctors[i] - allocate_rank[i][j] + 1) / numberAvailableDoctors[i] for j in J] for i in I]
+            patientTimeScore = [[(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T] for i in I]
+
+            m.setObjective(gp.quicksum(Y[i,j,t] * 
+                                    (
+                                            patientDoctorScore[i][j] 
+                                            + 
+                                            sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]
+                                        )
+                                    for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
+
+
+        # Set the objective depending on `obj`
+        elif obj == "doctor_satisfaction":
+
+            doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
+            doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
+
+            m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
+            #optimise_and_print_schedule()
+
+        # Solve and collect results
+        model_results = optimise_and_collect(obj)
+
+        # Store results
+        all_model_results[obj][seed] = model_results
+
+    # write all model results into json file
+    with open("all_1000_seeds_model_results.json", "w") as f:
+        json.dump(all_model_results, f, indent=4)
+
