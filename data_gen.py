@@ -35,7 +35,7 @@ def gen_doctor_available(J, K, T, qualified, treat):
     for j in J:
         min_time = max(treat[j][k] for k in K if qualified[j][k])
         length_available = random.choice(range(min_time, num_time_periods + 1))
-        start_time = random.choice(range(1, num_time_periods - length_available + 2))
+        start_time = random.choice(range(0, num_time_periods - length_available + 1))
         ans.append((start_time, length_available))
     return ans
 
@@ -70,7 +70,7 @@ def gen_patient_available(I, J, T, patient_diseases, qualified, treat):
         patient_disease = patient_diseases[i]
         min_time = min(treat[j][patient_disease] for j in J if qualified[j][patient_disease])
         length_available = random.choice(range(min_time, num_time_periods + 1))
-        start_time = random.choice(range(1, num_time_periods - length_available + 2))
+        start_time = random.choice(range(0, num_time_periods - length_available + 1))
         ans.append((start_time, length_available))
     return ans
 
@@ -89,37 +89,50 @@ def gen_patient_time_prefs(I, T, patient_available):
         ans.append(prefs)
     return ans
 
+import json
+
 if __name__ == "__main__":
+    SEED = 10
+    random.seed(SEED)
 
-    random.seed(10)
+    problem_size = {
+        "patients": 50,
+        "doctors":  5,
+        "diseases": 2,
+        "time periods": 10
+    }
 
-    I = range(10)
-    J = range(4)
-    K = range(2)
-    T = range(8)
+    I = range(problem_size["patients"])
+    J = range(problem_size["doctors"])
+    K = range(problem_size["diseases"])
+    T = range(problem_size["time periods"])
 
     best = gen_best(K)
     treat = gen_treat(J, K, best)
     qualified = gen_qualified(T, treat)
 
-    print("Best treatment times:", best)
-    print("Doctor service times:",treat)
-    print("Enough time to treat:", qualified)
-
     doctor_rank = gen_doctor_rank(qualified)
     doctor_available = gen_doctor_available(J, K, T, qualified, treat)
-    
-    print("-" * 21)
-    print("Disease rank by doct:", doctor_rank)
-    print("Doctor start, length:", doctor_available)
-
     patient_diseases = gen_patient_diseases(I, K)
     allocate_rank = gen_allocate_rank(I, J, patient_diseases, qualified)
     patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
     patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
 
-    print("-" * 21)
-    print("Diseases by patients:", patient_diseases)
-    print("Doctor rank by patie:", allocate_rank)
-    print("Patient start, lengt:", patient_available)
-    print("Patient time prefs  :", patient_time_prefs)
+    # Bundle into a dictionary
+    data = {
+        "problem_size": problem_size,
+        "best": best,
+        "treat": treat,
+        "qualified": qualified,
+        "doctor_rank": doctor_rank,
+        "doctor_available": doctor_available,
+        "patient_diseases": patient_diseases,
+        "allocate_rank": allocate_rank,
+        "patient_available": patient_available,
+        "patient_time_prefs": patient_time_prefs
+    }
+
+    # Save to JSON
+    with open(f"data_seed{SEED}_I{problem_size['patients']}_J{problem_size["doctors"]}_K{problem_size["diseases"]}_T{problem_size["time periods"]}.json", "w") as f:
+        json.dump(data, f, indent=4)
+    
