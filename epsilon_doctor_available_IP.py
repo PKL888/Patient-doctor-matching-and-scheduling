@@ -215,23 +215,66 @@ initial_upper_objs_bound = [total_appts_objs[1], doc_sat_objs[2]]
 initial_lower_objs_bound = [min(pat_sat_objs[1], doc_sat_objs[1]), min(pat_sat_objs[2], total_appts_objs[2])]
 
 # set initial step sizes for interation on epsilon
-deltas = [1, 0.01]
+deltas = [1, 1]
+
+# objective 0 is patient sat
+# objective 1 is appointments
+# objective 2 is doctor sat
+objective0_expression = gp.quicksum(Y[i,j,t] * (patientDoctorScore[i][j] + sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k])
+                           for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
+objective1_expression = gp.quicksum(Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
+objective2_expression = gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
+
+EPS1Con = m.addConstr(objective1_expression >= 0)
+EPS2Con = m.addConstr(objective2_expression >= 0)
 
 print(initial_upper_objs_bound, initial_lower_objs_bound)
-print(math.ceil(initial_upper_objs_bound[0]), math.floor(initial_lower_objs_bound[0]))
+# print((initial_upper_objs_bound[0]), (initial_lower_objs_bound[0]))
+
+eps_constrained_objss = dict()
 eps1 = initial_lower_objs_bound[0]
-for r in range(0, math.ceil(initial_upper_objs_bound[0]) - math.floor(initial_lower_objs_bound[0]) + 1, deltas[0]):
-    print(r)
-    print(eps1)
 
+for r in range(0, int((initial_upper_objs_bound[0] - initial_lower_objs_bound[0])/deltas[0] + 1)):
+    print("r", r)
+    print("eps1", eps1)
 
+    # set constraint
+    EPS1Con.RHS = eps1
+    
 
+    eps2 = initial_lower_objs_bound[1]
 
+    # find eps2 upper bound by optimising objective 2
+    m.setObjective(objective2_expression)
+    EPS2Con.RHS = eps2
 
+    obj2_objectives = tuple(optimise_and_return_stats())
+    obj2_upper_bound = obj2_objectives[2]
+    m.setObjective(objective0_expression)
+    print(obj2_upper_bound, initial_lower_objs_bound[1])
+    for s in range(0, int((obj2_upper_bound - initial_lower_objs_bound[1])/deltas[1] + 1)):
+        EPS2Con.RHS = eps2
+        m.update()
+
+        m.Params.OutputFlag = 0
+        # print("r", r, "s", s, "eps1", eps1, "eps2", round(eps2,2))
+        eps_constrained_objs = tuple(optimise_and_return_stats())
+        print("r", r, "s", s, "eps1", eps1, "eps2", eps2, [round(num,3) for num in eps_constrained_objs])
+        
+        
+        eps_constrained_objss[eps1, eps2] = eps_constrained_objs
+
+        eps2 += deltas[1]
+        # print("here")
+
+    m.Params.OutputFlag = 0
     eps1 += deltas[0]
 
 
 
+# for each r
+    # get eps1
 
+    # for each s
 
 

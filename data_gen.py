@@ -96,10 +96,10 @@ if __name__ == "__main__":
     random.seed(SEED)
 
     problem_size = {
-        "patients": 1000,
-        "doctors":  10,
-        "diseases": 4,
-        "time periods": 20
+        "patients": 50,
+        "doctors":  5,
+        "diseases": 2,
+        "time periods": 10
     }
 
     I = range(problem_size["patients"])

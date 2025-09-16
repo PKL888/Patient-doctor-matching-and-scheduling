@@ -133,14 +133,22 @@ def create_schedule(Ys):
         schedule.append(doctor_schedule)
     return schedule
 
-def print_stats(Ys):
+def make_stats(Ys):
     numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
     doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
     doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
+    ob1_pat_sat = (sum(Ys[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T))
+    ob2_total_appts = sum(Ys[i,j,t] for i in I for j in J for t in T)
+    ob3_doctor_sat = sum((doctor_disease_rank_scores[j][k]) * Ys[i,j,t] for k in K for i in I_k[k] for j in J for t in T)
+    return ob1_pat_sat, ob2_total_appts, ob3_doctor_sat
+
+def print_stats(Ys):
+    ob1_pat_sat, ob2_total_appts, ob3_doctor_sat = make_stats(Ys)
+
     print("Stats: -----------------------------------")
-    print("Number of patients allocated:", round(sum(Ys[i,j,t] for i in I for j in J for t in T)))
-    print("Patient satisfaction with doctor and time:", round(sum(Ys[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T),3))
-    print("Doctor satisfaction with diseases:", round(sum((doctor_disease_rank_scores[j][k]) * Ys[i,j,t] for k in K for i in I_k[k] for j in J for t in T),3))
+    print("Number of patients allocated:", round(ob2_total_appts))
+    print("Patient satisfaction with doctor and time:", round(ob1_pat_sat))
+    print("Doctor satisfaction with diseases:", round(ob3_doctor_sat))
     print("Appointments per doctor:", round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J))
 
 def print_schedule(schedule):
@@ -160,13 +168,20 @@ def optimise_and_print_schedule():
     print_stats(Ys)
     print_schedule(schedule)
 
+def optimise_and_return_stats():
+    m.optimize()
+    Yvals = {key: Y[key].x for key in Y}
+    # for all combinations of i j and t, if a match can exist be the Yval, otherwise just 0
+    Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
+    return make_stats(Ys)
+
 m.setParam("OutputFlag", 0)
 
 # Objective 1: Max. number of matches
 print("Objective 1: Max. number of matches")
 
 m.setObjective(gp.quicksum(Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+total_appts_objs = tuple(optimise_and_return_stats())
 
 # Objective 2: Max. patient satisfaction
 print("Objective 2: Max. patient satisfaction")
@@ -182,7 +197,7 @@ m.setObjective(gp.quicksum(Y[i,j,t] *
                                 sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]
                             )
                            for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+pat_sat_objs = tuple(optimise_and_return_stats())
 # m.optimize()
 
 
@@ -193,4 +208,85 @@ doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
 doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
 
 m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
-optimise_and_print_schedule()
+doc_sat_objs = tuple(optimise_and_return_stats())
+
+# get inital upper and lower bounds of 2nd and 3rd objvals
+initial_upper_objs_bound = [total_appts_objs[1], doc_sat_objs[2]]
+initial_lower_objs_bound = [min(pat_sat_objs[1], doc_sat_objs[1]), min(pat_sat_objs[2], total_appts_objs[2])]
+
+# set initial step sizes for interation on epsilon
+deltas = [1, 1]
+
+# objective 0 is patient sat
+# objective 1 is appointments
+# objective 2 is doctor sat
+objective0_expression = gp.quicksum(Y[i,j,t] * (patientDoctorScore[i][j] + sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k])
+                           for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
+objective1_expression = gp.quicksum(Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
+objective2_expression = gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
+
+EPS1Con = m.addConstr(objective1_expression >= 0)
+EPS2Con = m.addConstr(objective2_expression >= 0)
+
+print(initial_upper_objs_bound, initial_lower_objs_bound)
+# print((initial_upper_objs_bound[0]), (initial_lower_objs_bound[0]))
+
+pareto_frontier = dict()
+eps1 = initial_lower_objs_bound[0]
+
+for r in range(0, int((initial_upper_objs_bound[0] - initial_lower_objs_bound[0])/deltas[0] + 1)):
+    print("r", r)
+    print("eps1", eps1)
+
+    # set constraint
+    EPS1Con.RHS = eps1
+    
+
+    eps2 = initial_lower_objs_bound[1]
+
+    # find eps2 upper bound by optimising objective 2
+    m.setObjective(objective2_expression)
+    EPS2Con.RHS = eps2
+
+    obj2_objectives = tuple(optimise_and_return_stats())
+    obj2_upper_bound = obj2_objectives[2]
+    m.setObjective(objective0_expression)
+    print(obj2_upper_bound, initial_lower_objs_bound[1])
+    
+    s = 0
+    # num_passes_1 = []
+    # s = num_passes_1[r]
+    while (s < int((obj2_upper_bound - initial_lower_objs_bound[1])/deltas[1] + 1)):
+
+        EPS2Con.RHS = eps2
+        
+        m.update()
+
+        m.Params.OutputFlag = 0
+        # print("r", r, "s", s, "eps1", eps1, "eps2", round(eps2,2))
+        eps_constrained_objs = tuple(optimise_and_return_stats())
+        print("r", r, "s", s, "eps1", eps1, "eps2", eps2, [round(num,3) for num in eps_constrained_objs])
+        
+        
+        pareto_frontier[r, s] = eps_constrained_objs
+
+        
+
+        # num_passes_1[s] = math.floor((eps_constrained_objs[1] - eps1)/deltas[0]) + 1
+        num_passes_2 = math.floor((eps_constrained_objs[2] - eps2)/deltas[1]) + 1
+        s += num_passes_2
+        eps2 += num_passes_2 * deltas[1]
+
+        
+
+    m.Params.OutputFlag = 0
+    eps1 += deltas[0]
+
+
+
+# for each r
+    # get eps1
+
+    # for each s
+
+
