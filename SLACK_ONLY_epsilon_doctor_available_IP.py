@@ -200,7 +200,6 @@ m.setObjective(gp.quicksum(Y[i,j,t] *
 pat_sat_objs = tuple(optimise_and_return_stats())
 # m.optimize()
 
-
 # Objective 3: Max. doctor satisfaction
 print("Objective 3: Max. doctor satisfaction")
 
@@ -210,83 +209,286 @@ doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[
 m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]), gp.GRB.MAXIMIZE)
 doc_sat_objs = tuple(optimise_and_return_stats())
 
-# get inital upper and lower bounds of 2nd and 3rd objvals
+import math
+
+# ---------- Initial bounds and step sizes ----------
+# Upper and lower bounds for objectives 1 (appointments) and 2 (doctor satisfaction)
 initial_upper_objs_bound = [total_appts_objs[1], doc_sat_objs[2]]
-initial_lower_objs_bound = [min(pat_sat_objs[1], doc_sat_objs[1]), min(pat_sat_objs[2], total_appts_objs[2])]
+initial_lower_objs_bound = [
+    min(pat_sat_objs[1], doc_sat_objs[1]), 
+    min(pat_sat_objs[2], total_appts_objs[2])
+]
 
-# set initial step sizes for interation on epsilon
-deltas = [1, 1]
+# Step sizes for epsilon increments
+deltas = [1, 0.1]  # [delta_eps1, delta_eps2]
 
-# objective 0 is patient sat
-# objective 1 is appointments
-# objective 2 is doctor sat
-objective0_expression = gp.quicksum(Y[i,j,t] * (patientDoctorScore[i][j] + sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k])
-                           for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
-objective1_expression = gp.quicksum(Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
-objective2_expression = gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
+# ---------- Objective expressions ----------
+# Objective 0: patient satisfaction
+objective0_expression = gp.quicksum(
+    Y[i,j,t] * (patientDoctorScore[i][j] + 
+                sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k])
+    for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]
+)
 
+# Objective 1: number of appointments
+objective1_expression = gp.quicksum(
+    Y[i,j,t] 
+    for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]
+)
+
+# Objective 2: doctor satisfaction
+objective2_expression = gp.quicksum(
+    (doctor_disease_rank_scores[j][k]) * Y[i,j,t]
+    for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]
+)
+
+# ---------- Epsilon constraints ----------
 EPS1Con = m.addConstr(objective1_expression >= 0)
 EPS2Con = m.addConstr(objective2_expression >= 0)
 
-print(initial_upper_objs_bound, initial_lower_objs_bound)
-# print((initial_upper_objs_bound[0]), (initial_lower_objs_bound[0]))
+# ---------- Helper: Pareto filter ----------
+def pareto_filter(solutions):
+    """
+    Keep only non-dominated solutions.
+    Each solution is a tuple of objective values.
+    """
+    non_dominated = []
+    for sol in solutions:
+        dominated = False
+        for other in solutions:
+            # Check if 'other' (strictly) dominates 'sol'
+            if all(o >= s_i for o, s_i in zip(other, sol)) and any(o > s_i for o, s_i in zip(other, sol)):
+                dominated = True
+                break
+        if not dominated:
+            non_dominated.append(sol)
+    return non_dominated
 
-pareto_frontier = dict()
+# ---------- Pareto solutions set ----------
+pareto_solutions = []
+
+# ---------- Outer loop over eps1 ----------
 eps1 = initial_lower_objs_bound[0]
+r = 0
+num_s = int((initial_upper_objs_bound[1] - initial_lower_objs_bound[1])/deltas[1]) + 1
+num_passes_1 = [0] * num_s
+print(f"num_s={num_s}")
 
-for r in range(0, int((initial_upper_objs_bound[0] - initial_lower_objs_bound[0])/deltas[0] + 1)):
-    print("r", r)
-    print("eps1", eps1)
+while eps1 <= initial_upper_objs_bound[0]:
+    print(f"\n----------- Outer loop r={r} -----------")
 
-    # set constraint
     EPS1Con.RHS = eps1
-    
+    m.update()
 
-    eps2 = initial_lower_objs_bound[1]
-
-    # find eps2 upper bound by optimising objective 2
+    # ---------- Determine eps2 upper bound ----------
     m.setObjective(objective2_expression)
-    EPS2Con.RHS = eps2
+    EPS2Con.RHS = initial_lower_objs_bound[1]
+    obj2_stats = tuple(optimise_and_return_stats())
+    obj2_upper_bound = obj2_stats[2]  # maximum achievable objective 2
+    m.setObjective(objective0_expression)  # restore primary objective
 
-    obj2_objectives = tuple(optimise_and_return_stats())
-    obj2_upper_bound = obj2_objectives[2]
-    m.setObjective(objective0_expression)
-    print(obj2_upper_bound, initial_lower_objs_bound[1])
-    
+    # ---------- Inner loop over eps2 ----------
+    eps2 = initial_lower_objs_bound[1]
     s = 0
-    # num_passes_1 = []
-    # s = num_passes_1[r]
-    while (s < int((obj2_upper_bound - initial_lower_objs_bound[1])/deltas[1] + 1)):
+
+    while eps2 <= obj2_upper_bound:
+        if num_passes_1[s] > 0:
+            # decrease counter and skip solving
+            num_passes_1[s] -= 1
+            eps2 += deltas[1]
+            s += 1
+            continue
 
         EPS2Con.RHS = eps2
-        
         m.update()
-
         m.Params.OutputFlag = 0
-        # print("r", r, "s", s, "eps1", eps1, "eps2", round(eps2,2))
-        eps_constrained_objs = tuple(optimise_and_return_stats())
-        print("r", r, "s", s, "eps1", eps1, "eps2", eps2, [round(num,3) for num in eps_constrained_objs])
-        
-        
-        pareto_frontier[r, s] = eps_constrained_objs
 
-        
+        # Solve with current epsilon constraints
+        solution = tuple(optimise_and_return_stats())
+        # print(f"Inner loop r={r}, s={s}, eps1={round(eps1)}, eps2={round(eps2,2)}, objs={[round(x,2) for x in solution]}, num1={num_passes_1}")
+        print(s)
 
-        # num_passes_1[s] = math.floor((eps_constrained_objs[1] - eps1)/deltas[0]) + 1
-        num_passes_2 = math.floor((eps_constrained_objs[2] - eps2)/deltas[1]) + 1
-        s += num_passes_2
+        pareto_solutions.append(solution)
+
+        # Skip dominated eps2 values (jump ahead)
+        slack2 = solution[2] - eps2
+        num_passes_2 = max(1, int(slack2/deltas[1]) + 1)
+
+        # Prepare to skip dominated eps1 values in future iterations
+        slack1 = solution[1] - eps1
+        num_skips_1 = max(0, int(slack1/deltas[0]))
+
+        # Instead of only setting at s, pre-fill for the whole eps2 jump
+        for ss in range(s, min(s + num_passes_2, num_s)):
+            num_passes_1[ss] = max(num_passes_1[ss], num_skips_1)
+                                   
         eps2 += num_passes_2 * deltas[1]
+        s += num_passes_2
 
-        
-
-    m.Params.OutputFlag = 0
     eps1 += deltas[0]
+    r += 1
 
+def pareto_filter(solutions):
+    non_dominated = []
+    for sol in solutions:
+        dominated = False
+        for other in solutions:
+            if (all(o >= s_i for o, s_i in zip(other, sol)) and any(o > s_i for o, s_i in zip(other, sol))):
+                dominated = True
+                break
+        if not dominated:
+            non_dominated.append(sol)
+    return non_dominated
 
+pareto_frontier = pareto_filter(pareto_solutions)
 
-# for each r
-    # get eps1
+# ---------- Finished ----------
+pareto_sorted = sorted(pareto_frontier, key=lambda sol: (-sol[0], -sol[1], -sol[2]))
 
-    # for each s
+print(f"\nAll Pareto solutions found: {len(pareto_sorted)}")
+for sol in pareto_sorted:
+    print([round(x,3) for x in sol])
 
+# Assume pareto_frontier is a list of tuples (obj1, obj2, obj3)
+obj1 = [sol[0] for sol in pareto_frontier]
+obj2 = [sol[1] for sol in pareto_frontier]
+obj3 = [sol[2] for sol in pareto_frontier]
 
+# --- 2D plots (objective pairs) ---
+import matplotlib.pyplot as plt
+from matplotlib import colors
+
+def plot_pareto_2d(obj1, obj2, obj3, annotate=False):
+    """
+    Plot Pareto frontier in 2D projections with colour encoding for the third dimension.
+
+    Parameters
+    ----------
+    obj1, obj2, obj3 : list or array
+        Values of the three objectives for each solution.
+    annotate : bool
+        If True, adds text labels showing the coloured objective value at each point.
+    """
+    
+    cmap = plt.cm.get_cmap("RdYlGn")  # red=max, green=min
+    
+    # Normalisation per objective
+    norm1 = colors.Normalize(vmin=min(obj3), vmax=max(obj3))
+    norm2 = colors.Normalize(vmin=min(obj2), vmax=max(obj2))
+    norm3 = colors.Normalize(vmin=min(obj1), vmax=max(obj1))
+    
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+    
+    # Adjust space at bottom for horizontal colourbar
+    # plt.subplots_adjust(bottom=0.25)
+    
+    # --- Obj1 vs Obj2, colour by Obj3 ---
+    sc1 = axes[0].scatter(obj1, obj2, c=obj3, cmap=cmap, norm=norm1)
+    if annotate:
+        for x, y, z in zip(obj1, obj2, obj3):
+            axes[0].annotate(str(round(z, 1)), (x, y), fontsize=8,
+                             xytext=(5, 5), textcoords="offset points")
+    axes[0].set_xlabel("Objective 1: Matches")
+    axes[0].set_ylabel("Objective 2: Patient satisfaction")
+    axes[0].xaxis.set_label_position('top')
+    axes[0].xaxis.tick_top()
+    
+    # --- Obj1 vs Obj3, colour by Obj2 ---
+    sc2 = axes[1].scatter(obj1, obj3, c=obj2, cmap=cmap, norm=norm2)
+    if annotate:
+        for x, y, z in zip(obj1, obj2, obj3):
+            axes[1].annotate(str(round(y, 1)), (x, z), fontsize=8,
+                             xytext=(5, 5), textcoords="offset points")
+    axes[1].set_xlabel("Objective 1: Matches")
+    axes[1].set_ylabel("Objective 3: Doctor satisfaction")
+    axes[1].xaxis.set_label_position('top')
+    axes[1].xaxis.tick_top()
+    
+    # --- Obj2 vs Obj3, colour by Obj1 ---
+    sc3 = axes[2].scatter(obj2, obj3, c=obj1, cmap=cmap, norm=norm3)
+    if annotate:
+        for x, y, z in zip(obj1, obj2, obj3):
+            axes[2].annotate(str(round(x, 1)), (y, z), fontsize=8,
+                             xytext=(5, 5), textcoords="offset points")
+    axes[2].set_xlabel("Objective 2: Patient satisfaction")
+    axes[2].set_ylabel("Objective 3: Doctor satisfaction")
+    axes[2].xaxis.set_label_position('top')
+    axes[2].xaxis.tick_top()
+    
+    # Horizontal colourbar underneath all plots
+    cbar = fig.colorbar(sc3, ax=axes, orientation="horizontal", fraction=0.05)
+    cbar.set_label("Objective value (shared scale: green=max, red=min)")
+    cbar.ax.set_position([0.1, 0.1, 0.8, 0.03])
+    
+    plt.show()
+
+plot_pareto_2d(obj1, obj2, obj3)
+
+from mpl_toolkits.mplot3d import Axes3D
+
+# --- 3D plot ---
+def plot_pareto_3d(obj1, obj2, obj3):
+    fig = plt.figure(figsize=(7,7))
+    ax = fig.add_subplot(111, projection="3d")
+    cmap = plt.cm.get_cmap("RdYlGn")  # red=max, green=min
+
+    # Use obj3 as colour
+    sc = ax.scatter(obj1, obj2, obj3, c=obj3, cmap=cmap, s=50)
+
+    ax.set_xlabel("Objective 1: Patient satisfaction")
+    ax.set_ylabel("Objective 2: Appointments")
+    ax.set_zlabel("Objective 3: Doctor satisfaction")
+
+    # Add colourbar to show scale
+    cbar = plt.colorbar(sc, ax=ax, orientation="horizontal", label="Doctor satisfaction", fraction=0.05)
+    cbar.ax.set_position([0.25, 0.15, 0.6, 0.03])
+
+    plt.show()
+
+plot_pareto_3d(obj1, obj2, obj3)
+
+def plot_pareto_3d_with_dominated(pareto_points, dominated_points):
+    """
+    Plot 3D Pareto frontier with dominated points shown distinctly.
+    
+    Parameters
+    ----------
+    pareto_points : list of tuples
+        [(obj1, obj2, obj3), ...] for non-dominated points.
+    dominated_points : list of tuples
+        [(obj1, obj2, obj3), ...] for dominated points.
+    """
+    
+    # Split coordinates
+    obj1, obj2, obj3 = zip(*pareto_points)
+    d_obj1, d_obj2, d_obj3 = zip(*dominated_points) if dominated_points else ([], [], [])
+    
+    # Normalisation for consistent colour scale
+    all_values = list(obj1) + list(obj2) + list(obj3) #+ list(d_obj1) + list(d_obj2) + list(d_obj3)
+    norm = colors.Normalize(vmin=min(all_values), vmax=max(all_values))
+    cmap = plt.cm.get_cmap("RdYlGn")  # green=min, red=max
+    
+    fig = plt.figure(figsize=(7,6))
+    ax = fig.add_subplot(111, projection='3d')
+    
+    # Pareto frontier points
+    sc = ax.scatter(obj1, obj2, obj3, c=obj3, cmap=cmap, norm=norm, s=50, label="Pareto frontier")
+    
+    # Dominated points
+    if dominated_points:
+        ax.scatter(d_obj1, d_obj2, d_obj3, c='grey', s=20, alpha=0.5, marker='x', label="Dominated")
+    
+    ax.set_xlabel("Objective 1")
+    ax.set_ylabel("Objective 2")
+    ax.set_zlabel("Objective 3")
+    
+    # Horizontal colourbar
+    cbar = fig.colorbar(sc, orientation='horizontal', fraction=0.03)
+    cbar.ax.set_position([0.15, 0.05, 0.7, 0.03])
+    cbar.set_label("Objective 3 value (green=min, red=max)")
+    
+    ax.legend()
+    plt.show()
+
+dominated_points = [sol for sol in pareto_solutions if sol not in pareto_frontier]
+# plot_pareto_3d_with_dominated(pareto_frontier, dominated_points)

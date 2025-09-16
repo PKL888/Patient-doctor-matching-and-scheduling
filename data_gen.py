@@ -96,10 +96,10 @@ if __name__ == "__main__":
     random.seed(SEED)
 
     problem_size = {
-        "patients": 50,
-        "doctors":  5,
-        "diseases": 2,
-        "time periods": 10
+        "patients": 150,
+        "doctors":  15,
+        "diseases": 6,
+        "time periods": 20
     }
 
     I = range(problem_size["patients"])
@@ -133,6 +133,6 @@ if __name__ == "__main__":
     }
 
     # Save to JSON
-    with open(f"data_seed{SEED}_I{problem_size['patients']}_J{problem_size["doctors"]}_K{problem_size["diseases"]}_T{problem_size["time periods"]}.json", "w") as f:
+    with open(f"data_seed{SEED}_I{problem_size['patients']}_J{problem_size['doctors']}_K{problem_size['diseases']}_T{problem_size['time periods']}.json", "w") as f:
         json.dump(data, f, indent=4)
     
