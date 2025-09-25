@@ -10,8 +10,7 @@ import itertools
 
 from typing import Dict, FrozenSet, Tuple, Optional
 
-
-with open("data_seed10_I100_J10_K4_T20.pkl", "rb") as f:
+with open("data_seed10_I20_J4_K2_T10.pkl", "rb") as f:
     data = pickle.load(f)
 
 # put everything in the global namespace
@@ -26,64 +25,6 @@ START = 0
 DURATION = 1
 
 """
-Finds all the patient
-
-Returns: A set of sets of patients for this doctor, with the scores for each objective
-
-"""
-def find_all_patient_sets_for_doctor(doctor: int) -> Dict[FrozenSet[int], Tuple[float, float, float]]:
-    patients = patients_doctor_can_treat[j]
-
-    schedules_n_patients = dict()
-    #                             (set with no patients, tuple of 0 objective values)
-    #                         change to not be sets????
-    schedules_n_patients[0] = [ ([], (0,0,0)) ]
-    schedules_n_patients[1] = [([patient], find_best_schedule(doctor, {patient})[2]) for patient in patients]
-
-    n = 2
-    while True:
-        schedules_n_patients[n] = []
-        for patient_list, _ in schedules_n_patients[n - 1]:
-            
-            # {([1], (obj0, obj1, obj2)), ([2], (obj0, obj1, obj2))}
-            # schedule is ([1], (obj0, obj1, obj2))
-
-            last_patient = patient_list[-1]
-            potential_patients = I[last_patient + 1:]
-            for patient in potential_patients:
-                new_patient_list = patient_list + [patient]
-                                                                           # make take in a list???
-                feasible, _, objective_values = find_best_schedule(doctor, set(new_patient_list))
-                if not feasible:
-                    continue
-                # is feasible
-                schedules_n_patients[n].append((new_patient_list, objective_values))
-
-        # if we added no sets, break
-        if not schedules_n_patients[n]:
-            break
-
-        n += 1
-
-    all_tuple_schedules = []
-    for n in schedules_n_patients:
-        all_tuple_schedules.extend(schedules_n_patients[n])
-    # all_tuple_schedules is in the form [([1], objs), ([1, 2], objs)]
-    # all_tuple_schedules needs to be    {frozenset(1): objs, frozenset(1, 2): objs]
-    schedules = {frozenset(tuple_schedule[0]): tuple_schedule[1] for tuple_schedule in all_tuple_schedules}
-    return schedules
-
-
-
-
-S = dict()
-for j in J:
-    S[j] = find_all_patient_sets_for_doctor(j)
-
-
-
-
-"""
 Finds the best schedule for these patients for this doctor
 
 If it is infeasible, the objective values are not set.
@@ -93,6 +34,7 @@ Returns: (true, paitents, (objective_value 1, val 2, val 3))
 def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, Optional[dict[tuple[int, int, int], int]], Optional[tuple[float, float, float]]]:
     # create model
     m = gp.Model("small MIP")
+    m.setParam("OutputFlag", 0)
 
     # Variables
     Y = {(i,doctor,t):
@@ -181,8 +123,84 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, Optional[d
     Y_values = {(i, d, t): Y[i, d, t].x for (i, d, t) in Y if Y[i, d, t].x >= 0.9}
     return (True, Y_values, (obj1, obj2, obj3))
 
-print(find_best_schedule(1, {1,2}))
-# set of schedules
+
+
+"""
+Finds all the patient
+
+Returns: A set of sets of patients for this doctor, with the scores for each objective
+
+"""
+def find_all_patient_sets_for_doctor(doctor: int) -> Dict[FrozenSet[int], Tuple[float, float, float]]:
+    print("Doctor:", j)
+    patients = patients_doctor_can_treat[j]
+    print(len(patients))
+
+    schedules_n_patients = dict()
+    #                             (set with no patients, tuple of 0 objective values)
+    #                         change to not be sets????
+    schedules_n_patients[0] = [ ([], (0,0,0)) ]
+    schedules_n_patients[1] = [([patient], find_best_schedule(doctor, {patient})[2]) for patient in patients]
+    n = 2
+    while True:
+        print("n:", n)
+        schedules_n_patients[n] = []
+        for patient_list, _ in schedules_n_patients[n - 1]:
+            
+            # {([1], (obj0, obj1, obj2)), ([2], (obj0, obj1, obj2))}
+            # schedule is ([1], (obj0, obj1, obj2))
+
+            last_patient = patient_list[-1]
+            potential_patients = [p for p in patients if p > last_patient]
+            for patient in potential_patients:
+                new_patient_list = patient_list + [patient]
+                                                                           # make take in a list???
+                feasible, _, objective_values = find_best_schedule(doctor, set(new_patient_list))
+                if not feasible:
+                    
+                    continue
+                # is feasible
+                schedules_n_patients[n].append((new_patient_list, objective_values))
+
+        print(len(schedules_n_patients[n]))
+        # if we added no sets, break
+        if not schedules_n_patients[n]:
+            break
+
+        n += 1
+
+    all_tuple_schedules = []
+    for n in schedules_n_patients:
+        all_tuple_schedules.extend(schedules_n_patients[n])
+    # all_tuple_schedules is in the form [([1], objs), ([1, 2], objs)]
+    # all_tuple_schedules needs to be    {frozenset(1): objs, frozenset(1, 2): objs]
+    schedules = {frozenset(tuple_schedule[0]): tuple_schedule[1] for tuple_schedule in all_tuple_schedules}
+    return schedules
+
+
+bad = gp.Model("rubbish")
+print("-"*100)
+# i,j = 5,1
+# patients_j_can_treat = [i for k in diseases_doctor_qualified_for[j] for i in I_k[k] if compatible_times[i,j]]
+# print("I_k[1]:", I_k[1])
+# print(patients_j_can_treat)
+
+# # print(doctor_times)
+# print(doctor_times[j])
+# print(patient_times[i])
+# print(patient_diseases)
+# print(patient_diseases[i])
+# print(diseases_doctor_qualified_for[j])
+# print("-")
+# print(compatible_times[i,j])
+
+S = dict()
+for j in J:
+    S[j] = find_all_patient_sets_for_doctor(j)
+    print(S[j])
+
+
+
 
 
 # mip
