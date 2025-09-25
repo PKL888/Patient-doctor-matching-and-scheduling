@@ -1,13 +1,11 @@
 import gurobipy as gp
 from data_gen import *
 import random
-import json
+import pickle
 import time
 
-with open("data_seed10_I100_J10_K4_T20.json", "r") as f:
-    data = json.load(f)
-
-
+with open("data_seed10_I100_J10_K4_T20.pkl", "rb") as f:
+    data = pickle.load(f)
 
 # put everything in the global namespace
 globals().update(data)
@@ -15,15 +13,7 @@ globals().update(data)
 I = range(problem_size["patients"])
 J = range(problem_size["doctors"])
 K = range(problem_size["diseases"])
-T = [t for t in range(problem_size["time periods"])]
-
-START = 0
-DURATION = 1
-
-I_k = [[i for i in I if patient_diseases[i] == k] for k in K]
-J_k = [[j for j in J if qualified[j][k]] for k in K]
-
-diseases_doctor_qualified_for = {j: [k for k in K if qualified[j][k]] for j in J}
+T = range(problem_size["time periods"])
 
 # diseases_doctor_can_treat_at_time = {(j,t): [k for k in diseases_doctor_qualified_for[j] if t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION] - treat[j][k] + 1]]
 #                                      for j in J for t in T}
@@ -32,39 +22,6 @@ diseases_doctor_qualified_for = {j: [k for k in K if qualified[j][k]] for j in J
 # {(k,t):
 #     [i for i in I_k[k] if t in T[patient_available[i][START]: patient_available[i][START] + patient_available[i][DURATION]]] 
 # for k in K for t in T}
-
-compatible_times = {(i,j):
-                    T[max(patient_available[i][START], doctor_available[j][START]):
-      (max(0, min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1))]
-      for k in K for i in I_k[k] for j in J_k[k]}
-
-# Create a binary list for doctor availability per doctor per time period
-doctor_times = []
-for d in doctor_available:
-    time_list = []
-    binary_list = []
-    for j in range(d[0], d[0]+d[1]):
-        time_list.append(j)
-    for i in range(len(T)):
-        if i in time_list:
-            binary_list.append(1)
-        else:
-            binary_list.append(0)
-    doctor_times.append(binary_list)
-
-# Create a binary list for patient availability per patient per time period 
-patient_times = []
-for p in patient_available:
-    time_list = []
-    binary_list = []
-    for j in range(p[0], p[0]+p[1]):
-        time_list.append(j)
-    for i in range(len(T)):
-        if i in time_list:
-            binary_list.append(1)
-        else:
-            binary_list.append(0)
-    patient_times.append(binary_list) 
 
 m = gp.Model("Doctor availability")
 
@@ -252,7 +209,7 @@ def optimise_and_collect(objective_name):
         "appointments_per_doctor": round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J),
     }
 
-    # Convert schedule to JSON-friendly structure
+    # Convert schedule to pickle-friendly structure
     schedule_dict = {f"doctor_{j}": schedule[j] for j in J}
 
     return {
@@ -301,6 +258,6 @@ m.setObjective(gp.quicksum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k i
 model_results["doctor_satisfaction"] = optimise_and_collect("Max doctor satisfaction")
 
 # write model results into json file
-with open("all_model_results.json", "w") as f:
-    json.dump(model_results, f, indent=4)
+with open("all_model_results.pkl", "wb") as f:
+    pickle.dump(model_results, f)
 
