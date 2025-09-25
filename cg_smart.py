@@ -50,15 +50,39 @@ Returns: (true, paitents, (objective_value 1, val 2, val 3))
 def find_best_schedule(doctor: int, patients:set{int}) -> tuple(bool, set{int}, tuple(float)):
     pass
 
-# set of schedules
+# ============================================================
+# -------------------- Huge formulation ----------------------
+# ============================================================
 
+m = gp.Model("Doctor scheduling MIP")
 
-# mip
+# Doctor schedule
+Z = {
+    (j, s): m.addVar(vtype=gp.GRB.BINARY)
+    for j in J for s in S
+}
 
+for obj in range(3):
+    m.setObjective(gp.quicksum(s[obj] * Z[j, s] for j in J for s in S[j]), gp.GRB.MAXIMIZE)
 
+    # Each patient is assigned at most once
+    PatientsAreAssignedOnlyOnce = {
+        i: m.addConstr(
+            gp.quicksum(Z[j, s] for j in J for s in S[j] if i in s) <= 1
+        )
+        for i in I
+    }
 
+    # Each doctor has at most one schedule
+    DoctorsHaveOnlyOneSchdeule = {
+        s: m.addConstr(
+            gp.quicksum(Z[j, s] for j in J) <= 1
+        )
+        for s in S[j]
+    }
 
+    m.optimize()
 
-
-
-m = gp.Model("Doctor availability")
+    # Zvals = {key: Z[key].x for key in Z}
+    # Zs = {(j,s): Zvals.get((j,s), 0) for j in J for s in S[j]}
+    # print_schedule()
