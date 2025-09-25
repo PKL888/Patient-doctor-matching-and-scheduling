@@ -124,6 +124,7 @@ m.setObjective(gp.quicksum(Y[i,j,t] *
 # m.optimize()
 model_results["patient_satisfaction"] = optimise_and_collect("Max patient satisfaction", m, Y, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
 
+
 # Objective 3: Max. doctor satisfaction
 print("Objective 3: Max. doctor satisfaction")
 
