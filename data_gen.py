@@ -96,10 +96,10 @@ if __name__ == "__main__":
     random.seed(SEED)
 
     problem_size = {
-        "patients": 50,
-        "doctors":  5,
-        "diseases": 2,
-        "time periods": 10
+        "patients": 100,
+        "doctors":  10,
+        "diseases": 4,
+        "time periods": 20
     }
 
     I = range(problem_size["patients"])
@@ -170,6 +170,8 @@ if __name__ == "__main__":
       (max(0, min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1))]
       for k in K for i in I_k[k] for j in J_k[k]}
 
+    # Calculate all patients that doctor j can treat according to diseases and compatiable times
+    patients_doctor_can_treat = [[i for k in diseases_doctor_qualified_for[j] for i in I_k[k] if compatible_times[i,j]] for j in J]
 
     # Bundle into a dictionary
     data = {
@@ -190,7 +192,8 @@ if __name__ == "__main__":
         "I_k": I_k,
         "J_k": J_k,
         "diseases_doctor_qualified_for": diseases_doctor_qualified_for,
-        "compatible_times": compatible_times
+        "compatible_times": compatible_times,
+        "patients_doctor_can_treat": patients_doctor_can_treat
     }
 
     # Save to pickle
