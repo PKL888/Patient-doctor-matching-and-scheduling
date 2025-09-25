@@ -132,9 +132,9 @@ Returns: A set of sets of patients for this doctor, with the scores for each obj
 
 """
 def find_all_patient_sets_for_doctor(doctor: int) -> Dict[FrozenSet[int], Tuple[float, float, float]]:
-    print("Doctor:", j)
+    # print("Doctor:", j)
     patients = patients_doctor_can_treat[j]
-    print(len(patients))
+    # print(len(patients))
 
     schedules_n_patients = dict()
     #                             (set with no patients, tuple of 0 objective values)
@@ -143,7 +143,7 @@ def find_all_patient_sets_for_doctor(doctor: int) -> Dict[FrozenSet[int], Tuple[
     schedules_n_patients[1] = [([patient], find_best_schedule(doctor, {patient})[2]) for patient in patients]
     n = 2
     while True:
-        print("n:", n)
+        # print("n:", n)
         schedules_n_patients[n] = []
         for patient_list, _ in schedules_n_patients[n - 1]:
             
@@ -162,7 +162,7 @@ def find_all_patient_sets_for_doctor(doctor: int) -> Dict[FrozenSet[int], Tuple[
                 # is feasible
                 schedules_n_patients[n].append((new_patient_list, objective_values))
 
-        print(len(schedules_n_patients[n]))
+        # print(len(schedules_n_patients[n]))
         # if we added no sets, break
         if not schedules_n_patients[n]:
             break
@@ -197,7 +197,7 @@ print("-"*100)
 S = dict()
 for j in J:
     S[j] = find_all_patient_sets_for_doctor(j)
-    print(S[j])
+    print(len(S[j]))
 
 
 
