@@ -3,10 +3,10 @@ from data_gen import *
 import random
 import json
 
-with open("data_seed10_I100_J10_K4_T20.json", "r") as f:
+instance = "data_seed10_I100_J10_K4_T20.json"
+
+with open(instance, "r") as f:
     data = json.load(f)
-
-
 
 # put everything in the global namespace
 globals().update(data)
@@ -255,9 +255,10 @@ def pareto_filter(solutions):
     non_dominated = []
     for sol in solutions:
         dominated = False
+        solutions.remove(sol)
         for other in solutions:
             # Check if 'other' (strictly) dominates 'sol'
-            if all(o >= s_i for o, s_i in zip(other, sol)) and any(o > s_i for o, s_i in zip(other, sol)):
+            if all(o_i >= s_i for o_i, s_i in zip(other, sol)) and any(o_i > s_i for o_i, s_i in zip(other, sol)):
                 dominated = True
                 break
         if not dominated:
@@ -270,12 +271,19 @@ pareto_solutions = []
 # ---------- Outer loop over eps1 ----------
 eps1 = initial_lower_objs_bound[0]
 r = 0
+num_r = int((initial_upper_objs_bound[0] - initial_lower_objs_bound[0])/deltas[0]) + 1
 num_s = int((initial_upper_objs_bound[1] - initial_lower_objs_bound[1])/deltas[1]) + 1
 num_passes_1 = [0] * num_s
 print(f"num_s={num_s}")
 
+# with open("full_epsilon_output.json", "r") as f:
+#     all_output = json.load(f)
+bound = 0
+
 while eps1 <= initial_upper_objs_bound[0]:
     print(f"\n----------- Outer loop r={r} -----------")
+    
+    print(f"bound={bound}")
 
     EPS1Con.RHS = eps1
     m.update()
@@ -292,7 +300,7 @@ while eps1 <= initial_upper_objs_bound[0]:
     s = 0
 
     while eps2 <= obj2_upper_bound:
-        if num_passes_1[s] > 0:
+        if num_passes_1[s] > bound and bound > 0:
             # decrease counter and skip solving
             num_passes_1[s] -= 1
             eps2 += deltas[1]
@@ -305,10 +313,15 @@ while eps1 <= initial_upper_objs_bound[0]:
 
         # Solve with current epsilon constraints
         solution = tuple(optimise_and_return_stats())
-        # print(f"Inner loop r={r}, s={s}, eps1={round(eps1)}, eps2={round(eps2,2)}, objs={[round(x,2) for x in solution]}, num1={num_passes_1}")
-        print(s)
+        print(f"Inner loop r={r}, s={s}, eps1={round(eps1)}, eps2={round(eps2,2)}, objs={[round(x,2) for x in solution]}, num1={num_passes_1}")
+        # print(s)
 
         pareto_solutions.append(solution)
+
+        # key = (r, s, eps1, eps2, solution[0], solution[1], solution[2])
+        # if key in all_output.keys():
+
+        #     all_output[key].append()
 
         # Skip dominated eps2 values (jump ahead)
         slack2 = solution[2] - eps2
@@ -316,7 +329,7 @@ while eps1 <= initial_upper_objs_bound[0]:
 
         # Prepare to skip dominated eps1 values in future iterations
         slack1 = solution[1] - eps1
-        num_skips_1 = max(0, int(slack1/deltas[0]))
+        num_skips_1 = max(1, int(slack1/deltas[0]) + 1)
 
         # Instead of only setting at s, pre-fill for the whole eps2 jump
         for ss in range(s, min(s + num_passes_2, num_s)):
@@ -325,29 +338,46 @@ while eps1 <= initial_upper_objs_bound[0]:
         eps2 += num_passes_2 * deltas[1]
         s += num_passes_2
 
+    bound += 1
+
     eps1 += deltas[0]
     r += 1
 
-def pareto_filter(solutions):
-    non_dominated = []
-    for sol in solutions:
-        dominated = False
-        for other in solutions:
-            if (all(o >= s_i for o, s_i in zip(other, sol)) and any(o > s_i for o, s_i in zip(other, sol))):
-                dominated = True
-                break
-        if not dominated:
-            non_dominated.append(sol)
-    return non_dominated
 
 pareto_frontier = pareto_filter(pareto_solutions)
 
 # ---------- Finished ----------
 pareto_sorted = sorted(pareto_frontier, key=lambda sol: (-sol[0], -sol[1], -sol[2]))
 
-print(f"\nAll Pareto solutions found: {len(pareto_sorted)}")
-for sol in pareto_sorted:
-    print([round(x,3) for x in sol])
+print("----- All points found -----")
+all_pareto_sorted = sorted(pareto_solutions, key=lambda sol: (-sol[0], -sol[1], -sol[2]))
+# for sol in all_pareto_sorted:
+#     print([round(x,3) for x in sol])
+    
+print("----- Non-dominated points -----")
+# for sol in pareto_sorted:
+#     print([round(x,3) for x in sol])
+    
+print("----- Dominated points -----")
+dominated_points = [sol for sol in all_pareto_sorted if sol not in pareto_frontier]
+# for dom in dominated_points:
+#     print([round(x,3) for x in dom])
+
+print(f"all={len(all_pareto_sorted)}, pareto={len(pareto_sorted)}, dominated={len(dominated_points)}")
+
+# import csv
+
+# with open("solutions_with_status.csv", "w", newline="") as f:
+#     writer = csv.writer(f)
+#     writer.writerow(["Obj0", "Obj1", "Obj2", "Status"])  # headers
+
+#     # Pareto solutions
+#     for sol in pareto_sorted:
+#         writer.writerow([round(x, 6) for x in sol] + ["Pareto"])
+
+#     # Dominated solutions
+#     for sol in dominated_points:
+#         writer.writerow([round(x, 6) for x in sol] + ["Dominated"])
 
 # Assume pareto_frontier is a list of tuples (obj1, obj2, obj3)
 obj1 = [sol[0] for sol in pareto_frontier]
@@ -464,8 +494,7 @@ def plot_pareto_3d_with_dominated(pareto_points, dominated_points):
     d_obj1, d_obj2, d_obj3 = zip(*dominated_points) if dominated_points else ([], [], [])
     
     # Normalisation for consistent colour scale
-    all_values = list(obj1) + list(obj2) + list(obj3) #+ list(d_obj1) + list(d_obj2) + list(d_obj3)
-    norm = colors.Normalize(vmin=min(all_values), vmax=max(all_values))
+    norm = colors.Normalize(vmin=min(obj3), vmax=max(obj3))
     cmap = plt.cm.get_cmap("RdYlGn")  # green=min, red=max
     
     fig = plt.figure(figsize=(7,6))
@@ -491,4 +520,4 @@ def plot_pareto_3d_with_dominated(pareto_points, dominated_points):
     plt.show()
 
 dominated_points = [sol for sol in pareto_solutions if sol not in pareto_frontier]
-# plot_pareto_3d_with_dominated(pareto_frontier, dominated_points)
+plot_pareto_3d_with_dominated(pareto_frontier, dominated_points)
