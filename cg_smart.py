@@ -48,7 +48,7 @@ If it is infeasible, the objective values are not set.
 
 Returns: (true, paitents, (objective_value 1, val 2, val 3))
 """
-def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, set[int], tuple[float]]:
+def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, dict[tuple[int, int, int], int], tuple[float]]:
     # create model
     m = gp.Model("small MIP")
 
@@ -65,6 +65,11 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, set[int], 
         }
     
     # Constraints
+    AllPatientsSeenOnce = \
+    {(i):
+     m.addConstr(gp.quicksum(Y[i, doctor, t] for t in compatible_times[i, doctor]) >= 1) 
+     for i in I if i in patients}
+
     PatientsAreAssignedOnlyOnce = \
     {(i):
     m.addConstr(gp.quicksum(Y[i,doctor,t] for t in compatible_times[i,doctor]) <=1)
@@ -93,8 +98,12 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, set[int], 
     # objectives
     m.setObjective(gp.quicksum(Y[i,doctor,t] for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
     m.optimize()
+
+    if m.status != gp.GRB.OPTIMAL:
+        return False, None, None
+
     obj1 = m.ObjVal
-    print(obj1)
+    #print(obj1)
 
     patientDoctorScore = {i: allocate_rank[i][doctor] for i in I if i in patients}
     patientTimeScore = {i: [(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T] for i in I if i in patients}
@@ -107,8 +116,12 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, set[int], 
                                     )
                            for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
     m.optimize()
+
+    if m.status != gp.GRB.OPTIMAL:
+        return False, None, None
+
     obj2 = m.ObjVal
-    print(obj2)
+    #print(obj2)
 
     doctor_num_diseases_can_treat = sum(qualified[doctor])
     doctor_disease_rank_scores = [qualified[doctor][k] * (doctor_num_diseases_can_treat - doctor_rank[doctor][k] + 1)/doctor_num_diseases_can_treat + (1 - qualified[doctor][k]) * -M1 for k in K]
@@ -116,14 +129,17 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, set[int], 
     m.setObjective(gp.quicksum((doctor_disease_rank_scores[k]) * Y[i,doctor,t] for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
 
     m.optimize()
+
+    if m.status != gp.GRB.OPTIMAL:
+        return False, None, None
+
     obj3 = m.ObjVal
-    print(obj3)
+    #print(obj3)
 
+    Y_values = {(i, d, t): Y[i, d, t].x for (i, d, t) in Y if Y[i, d, t].x >= 0.9}
+    return (True, Y_values, (obj1, obj2, obj3))
 
-
-    pass
-
-find_best_schedule(1, {4,8,9,17})
+print(find_best_schedule(1, {1,2}))
 # set of schedules
 
 
