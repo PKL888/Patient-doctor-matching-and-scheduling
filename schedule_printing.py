@@ -1,10 +1,12 @@
+#################################################################
+# printing and optimising
 def left_pad_string(s, length):
     if len(s) >= length:
         return s
     
     return " " * (length - len(s)) + s 
 
-def create_schedule(Ys, ):
+def create_schedule(Ys, K, I_k, T, treat):
     schedule = []
     for j in J:
         # print("doctor:", j, "treatment length:", treat[j])
@@ -28,10 +30,19 @@ def print_stats(Ys):
     print("Doctor satisfaction with diseases:", round(sum((doctor_disease_rank_scores[j][k]) * Ys[i,j,t] for k in K for i in I_k[k] for j in J for t in T)))
     print("Appointments per doctor:", round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J))
 
-def print_schedule(schedule, doctor_times):
+def print_schedule(schedule):
     padding = len(str(len(I)))
     print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
     for j in J:
         formatted_doctor_schedule = [(patient >= 0) * str(patient) + (patient < 0) * " " + "-" * (1 - doctor_times[j][t]) for t, patient in enumerate(schedule[j])]
         padded_doctor_shedule = [left_pad_string(s, padding) for s in formatted_doctor_schedule]
         print("doctor:", j, " ".join(padded_doctor_shedule))
+
+def optimise_and_print_schedule():
+    m.optimize()
+    Yvals = {key: Y[key].x for key in Y}
+    Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
+
+    schedule = create_schedule(Ys)
+    print_stats(Ys)
+    print_schedule(schedule)
