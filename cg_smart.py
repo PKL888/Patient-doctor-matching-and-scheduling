@@ -39,7 +39,7 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, Optional[d
     # Variables
     Y = {(i,doctor,t):
         m.addVar(vtype=gp.GRB.BINARY)
-        for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]
+        for i in patients for t in compatible_times[i,doctor]
         }
 
     # 1 if doctor is available at time t, 0 otherwise
@@ -52,12 +52,12 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, Optional[d
     AllPatientsSeenOnce = \
     {(i):
      m.addConstr(gp.quicksum(Y[i, doctor, t] for t in compatible_times[i, doctor]) >= 1) 
-     for i in I if i in patients}
+     for i in patients}
 
     PatientsAreAssignedOnlyOnce = \
     {(i):
     m.addConstr(gp.quicksum(Y[i,doctor,t] for t in compatible_times[i,doctor]) <=1)
-    for k in K for i in I_k[k] if i in patients
+    for i in patients
     }
 
 
@@ -65,28 +65,30 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, Optional[d
     {(doctor,t):
     m.addConstr(Z[doctor,t] == 
                 Z[doctor,t-1] # previous availability
-                + gp.quicksum(Y[i,doctor,t-treat[doctor][k]] for k in diseases_doctor_qualified_for[doctor] for i in I_k[k] if i in patients if t-treat[doctor][k] in compatible_times[i,doctor]) # incoming availability
-                - gp.quicksum(Y[i,doctor,t] for k in diseases_doctor_qualified_for[doctor] for i in I_k[k] if i in patients if t in compatible_times[i,doctor]) # outgoing
+                + gp.quicksum(Y[i,doctor,t-treat[doctor][patient_diseases[i]]] for i in patients if t-treat[doctor][patient_diseases[i]] in compatible_times[i,doctor]) # incoming availability
+                - gp.quicksum(Y[i,doctor,t] for i in patients if t in compatible_times[i,doctor]) # outgoing
                 )
     for t in T[doctor_available[doctor][START] + 1:doctor_available[doctor][START] + doctor_available[doctor][DURATION]]}
 
-    DoctorsStartAvailable = m.addConstr(Z[doctor,doctor_available[doctor][START]] == 1 - gp.quicksum(Y[i,doctor,doctor_available[doctor][START]] for k in diseases_doctor_qualified_for[doctor] for i in I_k[k] if i in patients if doctor_available[doctor][START] in compatible_times[i,doctor]))
+    DoctorsStartAvailable = m.addConstr(Z[doctor,doctor_available[doctor][START]] == 1 - gp.quicksum(Y[i,doctor,doctor_available[doctor][START]] for i in patients if doctor_available[doctor][START] in compatible_times[i,doctor]))
 
     DoctorsEndAvailable = m.addConstr(Z[doctor,doctor_available[doctor][START] + doctor_available[doctor][DURATION]-1] + 
-                gp.quicksum(Y[i,doctor,doctor_available[doctor][START] + doctor_available[doctor][DURATION]-treat[doctor][k]] 
-                            for k in diseases_doctor_qualified_for[doctor] 
-                            for i in I_k[k] if i in patients if doctor_available[doctor][START] + doctor_available[doctor][DURATION] - treat[doctor][k] in compatible_times[i,doctor]) == 1)
+                gp.quicksum(Y[i,doctor,doctor_available[doctor][START] + doctor_available[doctor][DURATION]-treat[doctor][patient_diseases[i]]] 
+                            for i in patients if doctor_available[doctor][START] + doctor_available[doctor][DURATION] - treat[doctor][patient_diseases[i]] in compatible_times[i,doctor]) == 1)
 
-
+    m.addConstr(gp.quicksum(Y[i, doctor, t] for i in patients for t in compatible_times[i,doctor]) == len(patients))
+    # EveryPatientCovered = {i:
+    #                        m.addConstr(gp.quicksum(Y[i, doctor, t] for t in compatible_times[i,doctor]) == 1)
+    #                        for i in patients}
 
     # objectives
-    m.setObjective(gp.quicksum(Y[i,doctor,t] for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
-    m.optimize()
+    # m.setObjective(gp.quicksum(Y[i,doctor,t] for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
+    # m.optimize()
 
-    if m.status != gp.GRB.OPTIMAL:
-        return False, None, None
+    # if m.status != gp.GRB.OPTIMAL:
+    #     return False, None, None
 
-    obj1 = m.ObjVal
+    # obj1 = m.ObjVal
     #print(obj1)
 
     patientDoctorScore = {i: allocate_rank[i][doctor] for i in I if i in patients}
@@ -96,29 +98,33 @@ def find_best_schedule(doctor: int, patients:set[int]) -> tuple[bool, Optional[d
                             (
                                     patientDoctorScore[i]
                                     + 
-                                    sum(patientTimeScore[i][t:min(t + treat[doctor][k], len(T))]) / treat[doctor][k]
+                                    sum(patientTimeScore[i][t:min(t + treat[doctor][patient_diseases[i]], len(T))]) / treat[doctor][patient_diseases[i]]
                                     )
-                           for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
+                           for i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
     m.optimize()
 
     if m.status != gp.GRB.OPTIMAL:
         return False, None, None
 
     obj2 = m.ObjVal
-    #print(obj2)
+    # #print(obj2)
 
     doctor_num_diseases_can_treat = sum(qualified[doctor])
     doctor_disease_rank_scores = [qualified[doctor][k] * (doctor_num_diseases_can_treat - doctor_rank[doctor][k] + 1)/doctor_num_diseases_can_treat + (1 - qualified[doctor][k]) * -M1 for k in K]
 
-    m.setObjective(gp.quicksum((doctor_disease_rank_scores[k]) * Y[i,doctor,t] for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
+    # m.setObjective(gp.quicksum((doctor_disease_rank_scores[k]) * Y[i,doctor,t] for k in K for i in I_k[k] if i in patients for t in compatible_times[i,doctor]), gp.GRB.MAXIMIZE)
 
-    m.optimize()
+    # m.optimize()
 
-    if m.status != gp.GRB.OPTIMAL:
-        return False, None, None
+    # if m.status != gp.GRB.OPTIMAL:
+    #     return False, None, None
 
-    obj3 = m.ObjVal
-    #print(obj3)
+    # obj3 = m.ObjVal
+    # #print(obj3)
+    obj1 = sum(Y[i,doctor,t].x for i in patients for t in compatible_times[i,doctor])
+
+    obj3 = sum((doctor_disease_rank_scores[patient_diseases[i]]) * Y[i,doctor,t].x for i in patients for t in compatible_times[i,doctor])
+
 
     Y_values = {(i, d, t): Y[i, d, t].x for (i, d, t) in Y if Y[i, d, t].x >= 0.9}
     return (True, Y_values, (obj1, obj2, obj3))
@@ -196,46 +202,49 @@ print("-"*100)
 
 S = dict()
 for j in J:
+    print(j)
     S[j] = find_all_patient_sets_for_doctor(j)
-    print(len(S[j]))
+    # print(S[j])
 
 
 
-<<<<<<< HEAD
-=======
 # ============================================================
 # -------------------- Huge formulation ----------------------
 # ============================================================
->>>>>>> Peleg
 
 m = gp.Model("Doctor scheduling MIP")
 
 # Doctor schedule
 Z = {
     (j, s): m.addVar(vtype=gp.GRB.BINARY)
-    for j in J for s in S
+    for j in J for s in S[j]
+}
+
+# Each patient is assigned at most once
+PatientsAreAssignedOnlyOnce = {
+    i: m.addConstr(
+        gp.quicksum(Z[j, s] for j in J for s in S[j] if i in s) <= 1
+    )
+    for i in I
+}
+
+# Each doctor has at most one schedule
+DoctorsHaveOnlyOneSchdeule = {
+    j: m.addConstr(
+        gp.quicksum(Z[j, s] for s in S[j]) == 1
+    )
+    for j in J
 }
 
 for obj in range(3):
-    m.setObjective(gp.quicksum(s[obj] * Z[j, s] for j in J for s in S[j]), gp.GRB.MAXIMIZE)
+    # print(S[0])
+    m.setObjective(gp.quicksum(S[j][s][obj] * Z[j, s] for j in J for s in S[j]), gp.GRB.MAXIMIZE)
 
-    # Each patient is assigned at most once
-    PatientsAreAssignedOnlyOnce = {
-        i: m.addConstr(
-            gp.quicksum(Z[j, s] for j in J for s in S[j] if i in s) <= 1
-        )
-        for i in I
-    }
-
-    # Each doctor has at most one schedule
-    DoctorsHaveOnlyOneSchdeule = {
-        s: m.addConstr(
-            gp.quicksum(Z[j, s] for j in J) <= 1
-        )
-        for s in S[j]
-    }
+    m.setParam("OutputFlag", 1)
 
     m.optimize()
+
+    # print("Num appointments", sum(S[j][s][0] * Z[j, s].x for j in J for s in S[j]))
 
     # Zvals = {key: Z[key].x for key in Z}
     # Zs = {(j,s): Zvals.get((j,s), 0) for j in J for s in S[j]}
