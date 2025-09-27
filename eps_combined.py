@@ -290,8 +290,9 @@ patientTimeScore = [
 doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
 doctor_disease_rank_scores = [
     [
-        qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1) / doctor_num_diseases_can_treat[j]
-        + (1 - qualified[j][k]) * -M1
+        qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1) 
+        / doctor_num_diseases_can_treat[j]
+        + (1 - qualified[j][k]) * - M1
         for k in K
     ]
     for j in J
@@ -308,11 +309,12 @@ objective_0 = gp.quicksum(
         sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]
     )
     for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j]
-)
+)  
 
 # Objective 1: Total number of appointments
 objective_1 = gp.quicksum(
-    Y[i, j, t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j]
+    Y[i, j, t] 
+    for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j]
 )
 
 # Objective 2: Doctor satisfaction

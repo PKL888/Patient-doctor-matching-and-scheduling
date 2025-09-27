@@ -183,7 +183,7 @@ Find all possible sets of patients that a given doctor can treat
 
 Returns: A set of sets of patients for this doctor, with the scores for each objective
 """
-def find_all_patient_sets_for_doctor(doctor: int):
+def find_all_patient_sets_for_doctor(doctor: int) -> dict[FrozenSet[int], tuple[tuple[float,float,float], dict[tuple[int,int,int], int]]]:
     patients = patients_doctor_can_treat[doctor]
 
     schedules_n_patients = dict()
@@ -196,6 +196,7 @@ def find_all_patient_sets_for_doctor(doctor: int):
     
     n = 2
     while True:
+        print(" " * 5, "n =", n)
         schedules_n_patients[n] = []
         for patient_list, _, _ in schedules_n_patients[n - 1]:
             last_patient = patient_list[-1]
@@ -221,57 +222,20 @@ def find_all_patient_sets_for_doctor(doctor: int):
 
 # ---------------- Find all schedules ------------------------
 S = dict()
-# for j in J:
-#     S[j] = find_all_patient_sets_for_doctor(j)
+for j in J:
+    print("doctor", j)
+    S[j] = find_all_patient_sets_for_doctor(j)
 
-# Save schedules to pickle
-# with open(f"cg_output.pkl", "wb") as f:
-#     pickle.dump(S, f)
-
-# Load saved schedules
-with open("cg_output.pkl", "rb") as f:
-    S = pickle.load(f)
-
-# ============================================================
-# -------------------- Huge formulation ----------------------
-# ============================================================
-
-m = gp.Model("Doctor scheduling MIP")
-
-# Doctor schedule
-Z = {
-    (j, s): m.addVar(vtype=gp.GRB.BINARY)
-    for j in J for s in S[j]
+# Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
+data = {
+    "S": S,
+    "I": I,
+    "J": J,
+    "T": T,
+    "treat": treat,
+    "patient_diseases": patient_diseases,
+    "doctor_times": doctor_times
 }
 
-# Each patient is assigned at most once
-PatientsAreAssignedOnlyOnce = {
-    i: m.addConstr(
-        gp.quicksum(Z[j, s] for j in J for s in S[j] if i in s) <= 1
-    )
-    for i in I
-}
-
-# Each doctor has at most one schedule
-DoctorsHaveOnlyOneSchdeule = {
-    j: m.addConstr(
-        gp.quicksum(Z[j, s] for s in S[j]) == 1
-    )
-    for j in J
-}
-
-objectives = []
-for obj in range(3):
-    m.setObjective(gp.quicksum(S[j][s][0][obj] * Z[j, s] for j in J for s in S[j]), gp.GRB.MAXIMIZE)
-
-    m.setParam("OutputFlag", 0)
-    m.optimize()
-
-    objectives.append(round(m.ObjVal, 2))
-
-    print("-" * 50)
-    print("Maximise objective", obj)
-    schedule = create_schedule_from_Z(Z, S, J, T, treat, patient_diseases)
-    print_schedule_from_Z(schedule, I, J, T, doctor_times)
-
-print("\n",objectives)
+with open(f"cg_output.pkl", "wb") as f:
+    pickle.dump(data, f)
