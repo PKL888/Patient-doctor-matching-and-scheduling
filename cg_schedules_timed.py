@@ -21,6 +21,7 @@ DURATION = 1
 # ----------------- Timing globals -----------------
 time_gen = 0.0
 time_mip = 0.0
+time_in_mip_solver = 0.0
 mip_calls = 0
 mip_feasible = 0
 
@@ -28,7 +29,7 @@ mip_feasible = 0
 # Small MIP for a doctor and a set of patients
 # ==================================================
 def find_best_schedule(doctor: int, patients: set[int]) -> Tuple[bool, Optional[Dict[Tuple[int, int, int], int]], Optional[Tuple[float, float, float]]]:
-    global time_mip, mip_calls, mip_feasible
+    global time_mip, mip_calls, mip_feasible, time_in_mip_solver
     mip_calls += 1
     t0 = time.perf_counter()
 
@@ -114,9 +115,12 @@ def find_best_schedule(doctor: int, patients: set[int]) -> Tuple[bool, Optional[
         for i in patients for t in compatible_times[i,doctor]
     )
     m.setObjective(objective_0, gp.GRB.MAXIMIZE)
+    t_begin_optimize = time.perf_counter()
     m.optimize()
 
-    time_mip += time.perf_counter() - t0  # accumulate solver time
+    end_time = time.perf_counter()
+    time_in_mip_solver += end_time - t_begin_optimize
+    time_mip += end_time - t0  # accumulate solver time
 
     if m.status != gp.GRB.OPTIMAL:
         return False, None, None
@@ -148,26 +152,29 @@ def find_all_patient_sets_for_doctor(doctor: int):
     global time_gen
     t0 = time.perf_counter()
 
+    num_time_periods_available = doctor_available[doctor][1]
     patients = patients_doctor_can_treat[doctor]
-    schedules_n_patients = {0: [([], (0,0,0), {})]}
+    schedules_n_patients = {0: [([], (0,0,0), {}, 0)]}
     schedules_n_patients[1] = []
 
     for patient in patients:
         feasible, Y_values, obj_values = find_best_schedule(doctor, {patient})
         if feasible:
-            schedules_n_patients[1].append(([patient], obj_values, Y_values))
+            #                                                                length of time it takes for doctor to treat that disease
+            schedules_n_patients[1].append(([patient], obj_values, Y_values, treat[doctor][patient_diseases[patient]]))
     
     n = 2
     while True:
         schedules_n_patients[n] = []
-        for patient_list, _, _ in schedules_n_patients[n - 1]:
+        for patient_list, _, _, time_used in schedules_n_patients[n - 1]:
             last_patient = patient_list[-1]
-            potential_patients = [p for p in patients if p > last_patient]
-            for patient in potential_patients:
-                new_patient_list = patient_list + [patient]
-                feasible, Y_values, obj_values = find_best_schedule(doctor, set(new_patient_list))
-                if feasible:
-                    schedules_n_patients[n].append((new_patient_list, obj_values, Y_values))
+            potential_patients = [(p, treat[doctor][patient_diseases[p]] + time_used) for p in patients if p > last_patient]
+            for patient, new_time_used in potential_patients :
+                if new_time_used <= num_time_periods_available:
+                    new_patient_list = patient_list + [patient]
+                    feasible, Y_values, obj_values = find_best_schedule(doctor, set(new_patient_list))
+                    if feasible:
+                        schedules_n_patients[n].append((new_patient_list, obj_values, Y_values, new_time_used))
         if not schedules_n_patients[n]:
             break
         n += 1
@@ -177,9 +184,10 @@ def find_all_patient_sets_for_doctor(doctor: int):
     all_tuple_schedules = []
     for n in schedules_n_patients:
         all_tuple_schedules.extend(schedules_n_patients[n])
+
     return {
         frozenset(patient_list): (obj_values, Y_values)
-        for patient_list, obj_values, Y_values in all_tuple_schedules
+        for patient_list, obj_values, Y_values, _ in all_tuple_schedules
     }
 
 # ==================================================
@@ -190,6 +198,21 @@ for j in J:
     print("doctor", j)
     S[j] = find_all_patient_sets_for_doctor(j)
 
-print(f"Total wall-clock time in set generation: {time_gen:.6f} s")
-print(f"Total time inside small MIPs:            {time_mip:.6f} s")
+print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
+print(f"Total time making and solbing small MIPs: {time_mip:.6f} s")
+print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
 print(f"Total MIP calls: {mip_calls}, feasible: {mip_feasible}")
+
+# Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
+data = {
+    "S": S,
+    "I": I,
+    "J": J,
+    "T": T,
+    "treat": treat,
+    "patient_diseases": patient_diseases,
+    "doctor_times": doctor_times
+}
+
+with open(f"cg_output.pkl", "wb") as f:
+    pickle.dump(data, f)
