@@ -8,7 +8,7 @@ from typing import Dict, FrozenSet, Tuple, Optional
 import multiprocessing
 
 
-file = "data_seed10_I20_J4_K2_T10.pkl"
+file = "data_seed10_I10_J100_K3_T10.pkl"
 print("Using", file)
 with open(file, "rb") as f:
     data = pickle.load(f)
