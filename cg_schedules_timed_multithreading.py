@@ -5,10 +5,10 @@ from logging_results import *
 import pickle
 import time
 from typing import Dict, FrozenSet, Tuple, Optional
-import multiprocessing
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-file = "data_seed10_I20_J4_K2_T10.pkl"
+file = "data_seed10_I10_J100_K3_T10.pkl"
 print("Using", file)
 with open(file, "rb") as f:
     data = pickle.load(f)
@@ -213,7 +213,7 @@ def find_all_patient_sets_for_doctor(doctor: int):
 # ==================================================
 # Run across all doctors
 # ==================================================
-#S = {}
+
 def run_doctor_data(j: int):
 
     print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
@@ -224,10 +224,6 @@ def run_doctor_data(j: int):
 
     time_taken = time.perf_counter() - time_before
 
-    # 
-    #S[j] = result
-    #timings[j] = time_taken
-
     print(f"doctor: {j}, time: {time_taken:.2f} s")
 
     return j, result, time_taken
@@ -235,37 +231,19 @@ def run_doctor_data(j: int):
 if __name__ == "__main__":
     start_general_timer = time.perf_counter()
 
-    manager = multiprocessing.Manager()
-    #S = manager.dict()
-    #timings = manager.dict()
-
-    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-        results = pool.map(run_doctor_data, J)
-
-    # Convert results to dicts
     S = {}
     timings = {}
-    for j, result, timing in results:
-        S[j] = result
-        timings[j] = timing
 
-    ### EXTRA CODE (NOT NEEDED)
-    # processes = []
-    # for j in J:
-    #     p = multiprocessing.Process(target=run_doctor_data, args=(j, S, timings))
-    #     p.start()
-    #     processes.append(p)
+    with ThreadPoolExecutor(max_workers=len(J)) as executor:
+        futures = [executor.submit(run_doctor_data, j) for j in J]
 
-    # count = 1
-    # for p in processes:
-    #     p.join()
-
-    # Optional: convert S to normal dict after joining
-    # S = dict(S)
-    # timings = dict(timings)
+        for future in as_completed(futures):
+            j, result, timing = future.result()
+            S[j] = result
+            timings[j] = timing
 
     end_general_timer = time.perf_counter()
-    print(f"Total wall-clock time in parrallel:  {end_general_timer - start_general_timer:.6f} s")
+    print(f"Total wall-clock time in threading:  {end_general_timer - start_general_timer:.6f} s")
 
     print("Per-doctor process times:")
     for j in sorted(timings):

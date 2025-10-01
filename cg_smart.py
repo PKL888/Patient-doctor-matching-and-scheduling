@@ -6,7 +6,7 @@ import pickle
 
 from typing import Dict, FrozenSet, Tuple, Optional
 
-with open("data_seed10_I20_J4_K2_T10.pkl", "rb") as f:
+with open("data_seed10_I10_J100_K3_T10.pkl", "rb") as f:
     data = pickle.load(f)
 globals().update(data)
 
@@ -221,12 +221,12 @@ def find_all_patient_sets_for_doctor(doctor: int):
 
 # ---------------- Find all schedules ------------------------
 S = dict()
-# for j in J:
-#     S[j] = find_all_patient_sets_for_doctor(j)
+for j in J:
+    S[j] = find_all_patient_sets_for_doctor(j)
 
 # Save schedules to pickle
-# with open(f"cg_output.pkl", "wb") as f:
-#     pickle.dump(S, f)
+with open(f"cg_output.pkl", "wb") as f:
+    pickle.dump(S, f)
 
 # Load saved schedules
 with open("cg_output.pkl", "rb") as f:
