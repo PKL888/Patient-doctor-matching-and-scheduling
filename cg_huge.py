@@ -5,7 +5,7 @@ from logging_results import *
 import pickle
 
 # Load saved schedules
-with open("cg_output.pkl", "rb") as f:
+with open("cg_output_multiprocessing.pkl", "rb") as f:
     data = pickle.load(f)
 globals().update(data)
 
