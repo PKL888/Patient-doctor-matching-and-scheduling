@@ -2,9 +2,10 @@ import gurobipy as gp
 from data_gen import *
 from schedule_printing import *
 from logging_results import *
-import random
 import pickle
 import time
+from typing import Dict, FrozenSet, Tuple, Optional
+import multiprocessing
 
 with open("all_data_1000_seeds_I100_J10_K4_T20.pkl", "rb") as f:
     all_data = pickle.load(f)
@@ -132,11 +133,9 @@ for obj in objectives:
         model_results = optimise_and_collect(obj, m, Y, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
 
         # Store results
-        all_model_results[obj][seed] = {
-            "before_presolve_info": before_presolve_info,
-            "model_results": model_results
-        }
+        all_model_results[obj][seed] = model_results
 
     # write all model results into json file
     with open("DA_all_1000_seeds_model_results.pkl", "wb") as f:
         pickle.dump(all_model_results, f)
+

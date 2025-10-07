@@ -4,7 +4,7 @@ import numpy as np
 
 # --- Helper Function ---
 def extract_runtimes(model_results):
-    runtimes = [res["stats"]["runtime"] for res in model_results.values()]
+    runtimes = [res["model_results"]["stats"]["runtime"] for res in model_results.values()]
     runtimes = np.array(runtimes)
     runtimes.sort()
     y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100  # percentage
@@ -37,37 +37,37 @@ styles = {
 }
 
 # plot all 3 in one window
-# fig, axes = plt.subplots(1, 3, figsize=(18, 5))
-# for i, (obj_key, obj_label) in enumerate(objectives.items()):
-#     ax = axes[i]
-#     for model_name, model_results in all_models.items():
-#         x, y = extract_runtimes(model_results[obj_key])
-#         ax.plot(x, y, label=model_name, **styles[model_name])
-#     ax.set_xscale("log")
-#     ax.set_xlabel("Runtime (s)")
-#     ax.set_ylabel("Solved Instances (%)")
-#     ax.set_title(obj_label)
-#     ax.grid(True, which="both", ls="--")
-# ax.legend(title="Model", loc="lower right")
-# plt.tight_layout()
-# plt.show()
-
-# plot all 3 graphs in seperate windows
-for obj_key, obj_label in objectives.items():
-    plt.figure(figsize=(10, 6))
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+for i, (obj_key, obj_label) in enumerate(objectives.items()):
+    ax = axes[i]
     for model_name, model_results in all_models.items():
         x, y = extract_runtimes(model_results[obj_key])
-        plt.plot(x, y, label=model_name, **styles[model_name])
-    
-    plt.xscale("log")
-    plt.xlabel("Runtime (s)")
-    plt.ylabel("Solved Instances (%)")
-    plt.title(f"Runtime Distribution Comparison – {obj_label}")
-    plt.legend(title="Model")
-    plt.grid(True, which="both", ls="--")
-    plt.tight_layout()
-    plt.show(block=False)  # ← show without blocking
+        ax.plot(x, y, label=model_name, **styles[model_name])
+    ax.set_xscale("log")
+    ax.set_xlabel("Runtime (s)")
+    ax.set_ylabel("Solved Instances (%)")
+    ax.set_title(obj_label)
+    ax.grid(True, which="both", ls="--")
+ax.legend(title="Model", loc="lower right")
+plt.tight_layout()
+plt.show()
 
-input("Press Enter to close all plots...")
+# plot all 3 graphs in seperate windows
+# for obj_key, obj_label in objectives.items():
+#     plt.figure(figsize=(10, 6))
+#     for model_name, model_results in all_models.items():
+#         x, y = extract_runtimes(model_results[obj_key])
+#         plt.plot(x, y, label=model_name, **styles[model_name])
+    
+#     plt.xscale("log")
+#     plt.xlabel("Runtime (s)")
+#     plt.ylabel("Solved Instances (%)")
+#     plt.title(f"Runtime Distribution Comparison – {obj_label}")
+#     plt.legend(title="Model")
+#     plt.grid(True, which="both", ls="--")
+#     plt.tight_layout()
+#     plt.show(block=False)  # ← show without blocking
+
+# input("Press Enter to close all plots...")
 
 

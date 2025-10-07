@@ -1,94 +1,155 @@
-import json
+import pickle
+import numpy as np
 
-def left_pad_string(s, length):
-    """Helper to align output columns."""
-    if len(s) >= length:
-        return s
-    return " " * (length - len(s)) + s 
+def summarize_results(all_results, model_name):
+    """Aggregate presolve info and solver statistics across 100 seeds."""
 
-def print_schedule(schedule):
-    """Pretty-print the doctor schedules."""
-    T = len(next(iter(schedule.values())))
-    padding = len(str(T))
+    print("\n" + "="*100)
+    print(f"MODEL SUMMARY: {model_name}")
+    print("="*100)
 
-    print("\nSchedule:")
-    print("time:     " + " ".join([left_pad_string(str(t), padding) for t in range(T)]))
+    before_info_all = {
+        "num_variables": [],
+        "num_constraints": [],
+        "num_nonzeros": [],
+        "setup_time_seconds": []
+    }
 
-    for doctor, slots in schedule.items():
-        formatted_doctor_schedule = [
-            str(patient) if patient >= 0 else " " for patient in slots
-        ]
-        padded = [left_pad_string(s, padding) for s in formatted_doctor_schedule]
-        print(f"{doctor}: " + " ".join(padded))
+    found_before = False
 
-
-def print_results(results):
-    """Print presolve info, stats, and schedule for each objective."""
-
-    # Print BEFORE presolve info (once)
-    if "before_presolve_info" in results:
-        presolve = results["before_presolve_info"]
-        print("="*60)
-        print("Model setup / BEFORE presolve info:")
-        print("-"*60)
+    # --- BEFORE presolve info ---
+    if "before_presolve_info" in all_results:
+        presolve = all_results["before_presolve_info"]
+        found_before = True
+        print("\nBEFORE presolve info (shared across seeds):")
+        print("-"*80)
         print(f"Number of variables:       {presolve['num_variables']}")
         print(f"Number of constraints:     {presolve['num_constraints']}")
         print(f"Number of nonzeros:        {presolve['num_nonzeros']}")
         print(f"Setup time (s):            {presolve['setup_time_seconds']:.4f}")
-        print("="*60 + "\n")
 
-    # Print objective-specific stats
-    for obj_name, data in results.items():
-        if obj_name == "before_presolve_info":
-            continue  # already printed
+        before_vars = presolve["num_variables"]
+        before_cons = presolve["num_constraints"]
 
-        if not "stats" in data:
+    else:
+        before_vars = []
+        before_cons = []
+        for obj_name, seeds_data in all_results.items():
+            if not isinstance(seeds_data, dict):
+                continue
+            for seed, data in seeds_data.items():
+                if "before_presolve_info" in data:
+                    info = data["before_presolve_info"]
+                    found_before = True
+                    for k in before_info_all:
+                        before_info_all[k].append(info[k])
+                    before_vars.append(info["num_variables"])
+                    before_cons.append(info["num_constraints"])
+
+        if found_before and before_info_all["num_variables"]:
+            print("\nAVERAGED BEFORE presolve info (across all seeds):")
+            print("-"*80)
+            for k, vals in before_info_all.items():
+                arr = np.array(vals)
+                print(f"{k:25s}: mean={np.mean(arr):.2f} ± {np.std(arr):.2f}")
+
+    if not found_before:
+        print("\n(No BEFORE presolve info found at any level.)")
+        before_vars = before_cons = None
+
+    # --- Process each objective ---
+    for obj_name, seeds_data in all_results.items():
+        if obj_name == "before_presolve_info" or not isinstance(seeds_data, dict):
             continue
 
-        stats = data["stats"]
-        schedule = data["schedule"]
+        runtimes, obj_values, pat_sat, doc_sat, num_alloc, appt_doc = ([] for _ in range(6))
+        after_info = {
+            "columns_removed": [],
+            "rows_removed": [],
+            "num_variables": [],
+            "num_constraints": [],
+            "run_time_seconds": []
+        }
+        solver_nodes, solver_iters, solver_solutions, mip_gaps = ([] for _ in range(4))
 
-        print("\n" + "="*60)
-        print(f"Objective: {stats['objective']}")
-        print("-"*60)
+        # --- Collect across all seeds ---
+        for seed, data in seeds_data.items():
+            stats = data["model_results"]["stats"]
+            runtimes.append(stats["runtime"])
+            obj_values.append(stats["objective_value"])
+            pat_sat.append(stats["patient_satisfaction"])
+            doc_sat.append(stats["doctor_satisfaction"])
+            num_alloc.append(stats["num_patients_allocated"])
+            appt_doc.append(stats["appointments_per_doctor"])
 
-        # Objective stats
-        print(f"Objective value:         {stats['objective_value']:.2f}" if stats["objective_value"] is not None else "Objective value: None")
-        print(f"Patients allocated:      {stats['num_patients_allocated']}")
-        print(f"Patient satisfaction:    {stats['patient_satisfaction']}")
-        print(f"Doctor satisfaction:     {stats['doctor_satisfaction']}")
-        print(f"Appointments per doctor: {stats['appointments_per_doctor']:.2f}")
+            if "mip_gap" in stats and stats["mip_gap"] is not None:
+                mip_gaps.append(stats["mip_gap"])
+            solver_nodes.append(stats["nodes"])
+            solver_iters.append(stats["iterations"])
+            solver_solutions.append(stats["solutions_found"])
 
-        # Solver stats
-        print("\nSolver stats:")
-        print(f"Runtime (s):             {stats['runtime']:.2f}")
-        if stats["mip_gap"] is not None:
-            print(f"MIP Gap:                 {stats['mip_gap']:.4f}")
-        print(f"Nodes explored:          {stats['nodes']}")
-        print(f"Iterations:              {stats['iterations']}")
-        print(f"Solutions found:         {stats['solutions_found']}")
+            if "after_presolve_info" in data["model_results"]:
+                ap = data["model_results"]["after_presolve_info"]
+                for k in after_info:
+                    after_info[k].append(ap[k])
 
-        # Print AFTER presolve info for this objective
-        if "after_presolve_info" in data:
-            ap = data["after_presolve_info"]
-            print("\nAFTER presolve info (for this objective):")
-            print(f"Number of columns removed:   {ap['columns_removed']}")
-            print(f"Number of rows removed:     {ap['rows_removed']}")
-            print(f"Number of variables:     {ap['num_variables']}")
-            print(f"Number of constraints:   {ap['num_constraints']}")
-            print(f"Elapsed time (s):        {ap['run_time_seconds']:.4f}")
-            print("-"*60)
+        print("\n" + "="*80)
+        print(f"Objective: {obj_name}")
+        print("-"*80)
 
-        # Schedule output
-        print_schedule(schedule)
-        print("="*60 + "\n")
+        # --- Objective-level averages ---
+        print(f"Objective value (avg):     {np.mean(obj_values):.2f} ± {np.std(obj_values):.2f}")
+        print(f"Patients allocated (avg):  {np.mean(num_alloc):.2f} ± {np.std(num_alloc):.2f}")
+        print(f"Patient satisfaction:      {np.mean(pat_sat):.3f} ± {np.std(pat_sat):.3f}")
+        print(f"Doctor satisfaction:       {np.mean(doc_sat):.3f} ± {np.std(doc_sat):.3f}")
+        print(f"Appointments per doctor:   {np.mean(appt_doc):.2f} ± {np.std(appt_doc):.2f}")
+
+        # --- Solver stats ---
+        print("\nSolver stats (Gurobi, across 100 seeds):")
+        print(f"Runtime (s):               min = {np.min(runtimes):.2f}, "
+              f"mean={np.mean(runtimes):.2f}, max = {np.max(runtimes):.2f}, std={np.std(runtimes):.2f}")
+        print(f"Nodes explored:            mean = {np.mean(solver_nodes):.1f} ± {np.std(solver_nodes):.1f}")
+        print(f"Iterations:                mean = {np.mean(solver_iters):.1f} ± {np.std(solver_iters):.1f}")
+        print(f"Solutions found:           mean = {np.mean(solver_solutions):.1f} ± {np.std(solver_solutions):.1f}")
+        if mip_gaps:
+            print(f"MIP gap:                   mean = {np.mean(mip_gaps):.4f} ± {np.std(mip_gaps):.4f}")
+
+        # --- After presolve info ---
+        if after_info["num_variables"]:
+            print("\nAFTER presolve info (averaged across seeds):")
+            for k, v in after_info.items():
+                if (k == "columns_removed" or k == "rows_removed"):
+                    continue
+                else:
+                    arr = np.array(v)
+                    print(f"{k:25s}: mean = {np.mean(arr):.2f} ± {np.std(arr):.2f}")
+
+            # --- Compute derived removals if before info is available ---
+            if before_vars is not None and before_cons is not None:
+                # Ensure before info matches the same number of seeds
+                if isinstance(before_vars, list) and len(before_vars) > len(after_info["num_variables"]):
+                    # Likely before_vars covers multiple objectives — use mean or unique values
+                    before_vars_arr = np.full(len(after_info["num_variables"]), np.mean(before_vars))
+                    before_cons_arr = np.full(len(after_info["num_constraints"]), np.mean(before_cons))
+                else:
+                    before_vars_arr = np.array(before_vars)
+                    before_cons_arr = np.array(before_cons)
+
+                vars_removed = before_vars_arr - np.array(after_info["num_variables"])
+                cons_removed = before_cons_arr - np.array(after_info["num_constraints"])
+
+                print(f"Columns removed (vars):    mean = {np.mean(vars_removed):.2f} ± {np.std(vars_removed):.2f}")
+                print(f"Rows removed (constraints):mean = {np.mean(cons_removed):.2f} ± {np.std(cons_removed):.2f}")
+
+        print("="*80)
+
+    print("\nEND OF MODEL SUMMARY")
+    print("="*100 + "\n")
 
 
 if __name__ == "__main__":
+    file_path = "F_all_1000_seeds_model_results.pkl"
+    with open(file_path, "rb") as f:
+        all_results = pickle.load(f)
 
-    data_name = "OUTPUT_data_seed10_I100_J10_K4_T20"
-
-    with open(f"{data_name}.json", "r") as f:
-        all_model_results = json.load(f)
-
-    print_results(all_model_results)
+    summarize_results(all_results, model_name="Doctor Available Model")

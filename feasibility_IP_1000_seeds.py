@@ -96,7 +96,6 @@ for obj in objectives:
                                     treat[j][k])
                            for k in K for i in I_k[k] for j in J for t in T), gp.GRB.MAXIMIZE)
 
-
         # Set the objective depending on `obj`
         elif obj == "doctor_satisfaction":
 
@@ -110,7 +109,11 @@ for obj in objectives:
         model_results = optimise_and_collect(obj, m, Y, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
 
         # Store results
-        all_model_results[obj][seed] = model_results
+        all_model_results[obj][seed] = {
+            "before_presolve_info": before_presolve_info,
+            "model_results": model_results
+        }
+
 
     # write all model results into json file
     with open("F_all_1000_seeds_model_results.pkl", "wb") as f:

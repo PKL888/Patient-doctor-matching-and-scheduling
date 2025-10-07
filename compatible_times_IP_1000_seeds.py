@@ -34,13 +34,7 @@ for obj in objectives:
             m.addVar(vtype=gp.GRB.BINARY)
             for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j]
             }
-
-        # Constraints
-        # DoctorsStartOneTreatAtATime = \
-        # {(j,t):
-        #  m.addConstr(gp.quicksum(Y.get((i,j,t),0) for k in K for i in I_k[k]) <= 1)
-        #  for j in J for t in T[doctor_available[j][START]:doctor_available[j][START] + doctor_available[j][DURATION]]}
-
+        
         DoctorsAreNotOverbooked = \
         {(j,t):
         m.addConstr(gp.quicksum(Y[i,j,tt] for k in K if j in J_k[k] for i in I_k[k] 
@@ -110,7 +104,10 @@ for obj in objectives:
         model_results = optimise_and_collect(obj, m, Y, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
 
         # Store results
-        all_model_results[obj][seed] = model_results
+        all_model_results[obj][seed] = {
+            "before_presolve_info": before_presolve_info,
+            "model_results": model_results
+        }
 
     # write all model results into json file
     with open("CT_all_1000_seeds_model_results.pkl", "wb") as f:
