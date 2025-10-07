@@ -1,5 +1,6 @@
 import random
 import math
+import pickle
 
 def gen_best(K):
     return [random.choice([1,2,3]) for k in K]
@@ -17,18 +18,6 @@ def gen_treat(J, K, best):
             row.append(math.ceil(best[k] / denom))
         treatments.append(row)
     return treatments
-
-# def gen_treat(J, K, best):
-#     treat = []
-#     for j in J:
-#         while True:
-#             # generate random treat times
-#             times = [math.ceil(best[k] / min(max(0.000001, random.normalvariate(0.75, 0.5)), 1)) for k in K]
-#             # check if doctor can treat at least one disease
-#             if any(t <= len(T) for t in times):
-#                 treat.append(times)
-#                 break
-#     return treat
 
 # Checks if a doctor can treat a disease based on the number of time periods available
 def gen_qualified(T, treat):
@@ -55,7 +44,7 @@ def gen_doctor_available(J, K, T, qualified, treat):
     num_time_periods = len(T)
     ans = []
     for j in J:
-        min_time = max((treat[j][k] for k in K if qualified[j][k]), default=0)
+        min_time = max(treat[j][k] for k in K if qualified[j][k])
         length_available = random.choice(range(min_time, num_time_periods + 1))
         start_time = random.choice(range(0, num_time_periods - length_available + 1))
         ans.append((start_time, length_available))
@@ -111,7 +100,7 @@ def gen_patient_time_prefs(I, T, patient_available):
         ans.append(prefs)
     return ans
 
-import json
+import pickle
 
 if __name__ == "__main__":
     NUM_SEEDS = 1000
@@ -126,7 +115,7 @@ if __name__ == "__main__":
     ALL_DATA = {}
 
     for SEED in range(NUM_SEEDS):
-        random.seed(SEED)
+        random.seed(SEED)  
 
         I = range(problem_size["patients"])
         J = range(problem_size["doctors"])
@@ -144,6 +133,61 @@ if __name__ == "__main__":
         patient_available = gen_patient_available(I, J, T, patient_diseases, qualified, treat)
         patient_time_prefs = gen_patient_time_prefs(I, T, patient_available)
 
+        # Create a binary list for doctor availability per doctor per time period
+        doctor_times = []
+        for d in doctor_available:
+            time_list = []
+            binary_list = []
+            for j in range(d[0], d[0]+d[1]):
+                time_list.append(j)
+            for i in range(len(T)):
+                if i in time_list:
+                    binary_list.append(1)
+                else:
+                    binary_list.append(0)
+            doctor_times.append(binary_list)
+
+        # Create a binary list for patient availability per patient per time period 
+        patient_times = []
+        for p in patient_available:
+            time_list = []
+            binary_list = []
+            for j in range(p[0], p[0]+p[1]):
+                time_list.append(j)
+            for i in range(len(T)):
+                if i in time_list:
+                    binary_list.append(1)
+                else:
+                    binary_list.append(0)
+            patient_times.append(binary_list) 
+
+        # Prepare index sets
+        I = list(range(problem_size["patients"]))
+        J = list(range(problem_size["doctors"]))
+        K = list(range(problem_size["diseases"]))
+        T = list(range(problem_size["time periods"]))
+
+        START = 0
+        DURATION = 1
+
+        # Patients by disease
+        I_k = {k: [i for i in I if patient_diseases[i] == k] for k in K}
+
+        # Doctors qualified for each disease
+        J_k = {k: [j for j in J if qualified[j][k]] for k in K}
+
+        # Diseases each doctor can treat
+        diseases_doctor_qualified_for = {j: [k for k in K if qualified[j][k]] for j in J}
+
+        # Calculate compatible times per (i, j)
+        compatible_times = {(i,j):
+                        T[max(patient_available[i][START], doctor_available[j][START]):
+        (max(0, min(patient_available[i][START] + patient_available[i][DURATION], doctor_available[j][START] + doctor_available[j][DURATION]) - treat[j][k] + 1))]
+        for k in K for i in I_k[k] for j in J_k[k]}
+
+        # Calculate all patients that doctor j can treat according to diseases and compatiable times
+        patients_doctor_can_treat = [[i for k in diseases_doctor_qualified_for[j] for i in I_k[k] if compatible_times[i,j]] for j in J]
+
         # Bundle into a dictionary
         data = {
             "problem_size": problem_size,
@@ -155,13 +199,21 @@ if __name__ == "__main__":
             "patient_diseases": patient_diseases,
             "allocate_rank": allocate_rank,
             "patient_available": patient_available,
-            "patient_time_prefs": patient_time_prefs
+            "patient_time_prefs": patient_time_prefs,
+            "doctor_times": doctor_times,
+            "patient_times": patient_times,
+            "START": START,
+            "DURATION": DURATION,
+            "I_k": I_k,
+            "J_k": J_k,
+            "diseases_doctor_qualified_for": diseases_doctor_qualified_for,
+            "compatible_times": compatible_times,
+            "patients_doctor_can_treat": patients_doctor_can_treat
         }
 
         # Save under this seed
         ALL_DATA[f"seed_{SEED}"] = data
 
     # Save to JSON
-    with open(f"all_data_{NUM_SEEDS}_seeds_I{problem_size['patients']}_J{problem_size['doctors']}_K{problem_size['diseases']}_T{problem_size['time periods']}.json", "w") as f:
-        json.dump(ALL_DATA, f, indent=4)
-        
+    with open(f"all_data_{NUM_SEEDS}_seeds_I{problem_size['patients']}_J{problem_size['doctors']}_K{problem_size['diseases']}_T{problem_size['time periods']}.pkl", "wb") as f:
+        pickle.dump(ALL_DATA, f)
