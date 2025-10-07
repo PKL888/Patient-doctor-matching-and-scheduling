@@ -7,7 +7,7 @@ import time
 from typing import Dict, FrozenSet, Tuple, Optional
 
 
-file = "data_seed10_I20_J4_K2_T10.pkl"
+file = "data_seed10_I40_J4_K2_T20.pkl"
 print("Using", file)
 with open(file, "rb") as f:
     data = pickle.load(f)
@@ -117,6 +117,60 @@ def make_small_mip_model_doctor_availability(doctor:int, patients: set[int]):
 
     return m, Y
 
+def make_small_mip_model_compatible_times(doctor:int, patients: set[int]):
+    m = gp.Model("Small MIP")
+    m.setParam("OutputFlag", 0)
+
+    # -------------------- Variables -----------------------------
+    Y = {
+        (i,doctor,t): m.addVar(vtype=gp.GRB.BINARY)
+        for i in patients for t in compatible_times[i,doctor]
+    }
+
+    # -------------------- Constraints ---------------------------
+    for i in patients:
+        m.addConstr(gp.quicksum(Y[i, doctor, t] for t in compatible_times[i, doctor]) == 1)
+
+    DoctorsAreNotOverbooked = {
+        t: m.addConstr(
+            gp.quicksum(Y[i,doctor,tt] 
+            for i in patients for tt in T[
+                max(0, t - treat[doctor][patient_diseases[i]] + 1):
+                t+1
+                ] 
+            if tt in compatible_times[i, doctor]) 
+            <= 1
+        )
+    for t in T}
+
+    # -------------------- Objectives ----------------------------
+    numberAvailableDoctors = {
+        i: sum(allocate_rank[i][jj] != M1 for jj in J)
+        for i in patients
+    }
+    patientDoctorScore = {
+        i: ((numberAvailableDoctors[i] - allocate_rank[i][doctor] + 1) / numberAvailableDoctors[i]
+            if allocate_rank[i][doctor] != M1 else 0)
+        for i in patients
+    }
+    patientTimeScore = {
+        i: [(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T]
+        for i in patients
+    }
+
+    objective_0 = gp.quicksum(
+        Y[i,doctor,t] * (
+            patientDoctorScore[i]
+            + sum(patientTimeScore[i][tt] for tt in range(t, min(t + treat[doctor][patient_diseases[i]], len(T))))
+            / treat[doctor][patient_diseases[i]]
+        )
+        for i in patients for t in compatible_times[i,doctor]
+    )
+    m.setObjective(objective_0, gp.GRB.MAXIMIZE)
+
+    return m, Y
+
+
 
 # ==================================================
 # Small MIP for a doctor and a set of patients
@@ -214,6 +268,8 @@ def find_all_patient_sets_for_doctor(doctor: int):
 S = {}
 for j in J:
 
+    # create a thread / new process
+    # run threads/ processes
     print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
     max_appointments = doctor_available[j][1] // min([treat[j][k] for k in diseases_doctor_qualified_for[j]])
     print(f"max appointments: {max_appointments} ", end = "")
@@ -221,11 +277,16 @@ for j in J:
     S[j] = find_all_patient_sets_for_doctor(j)
 
     time_taken = time.perf_counter() - time_before
-    print(f"time: {time_taken:.2f} s")
+    print(f"time: {time_taken} s")
+
+
+# for j in J:
+    # get answer from each thread / process
 
 
 print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
-print(f"Total time making and solbing small MIPs: {time_mip:.6f} s")
+print(f"Total time making and solving small MIPs: {time_mip:.6f} s")
+print(f"Total time making small MIPs:             {(time_mip - time_in_mip_solver):.6f} s")
 print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
 print(f"Total MIP calls: {mip_calls}, feasible: {mip_feasible}")
 
