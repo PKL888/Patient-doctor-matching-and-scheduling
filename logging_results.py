@@ -31,6 +31,7 @@ def optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank,
     schedule = create_schedule(Ys, K, J, I_k, T, treat)
     print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
     print_schedule(schedule, I, J, T, doctor_times)
+    plot_schedule(schedule, I, J, T, doctor_times, path="plot.png")
 
 def optimise_and_collect(objective_name, m, Y, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs):
     start_obj_time = time.time()
