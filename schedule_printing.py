@@ -1,4 +1,12 @@
 import time
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+plt.rcParams.update({
+    "mathtext.fontset": "cm",   # Computer Modern for math
+    "font.family": "serif",     # Serif font for text
+    "font.size": 12             # Set default font size to 12
+})
 
 #################################################################
 # printing and optimising
@@ -96,3 +104,85 @@ def print_schedule_from_Z(schedule, I, J, T, doctor_times):
             formatted.append(left_pad_string(s_val, padding))
 
         print("doctor:", j, " ".join(formatted))
+
+def plot_schedule(schedule, I, J, T, doctor_times, path):
+    """
+    Visualise the schedule as a Gantt chart.
+
+    Args:
+        schedule: list of lists, schedule[j][t] = patient index or -1
+        I: list of patients
+        J: list of doctors
+        T: list of time slots
+        doctor_times: availability of each doctor (boolean matrix)
+    """
+
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    cmap = plt.cm.gist_rainbow  # rainbow colormap
+    n_patients = len(I)
+
+    # Assign a unique colour for each patient
+    patient_colors = {patient: cmap(i / n_patients) for i, patient in enumerate(I)}
+
+    # Iterate over doctors (rows)
+    for row, j in enumerate(J):
+        doctor_schedule = schedule[row]
+
+        t = 0
+        while t < len(T):
+            patient = doctor_schedule[t]
+            if doctor_times[j][t]:
+                # Start of a block
+                start = t
+                while (t < len(T) and doctor_schedule[t] == patient 
+                       and doctor_times[j][t]):
+                    t += 1
+                end = t
+
+                # Draw rectangle for this patient
+                height = 0.85
+                if patient != -1:
+                    ax.add_patch(
+                        patches.Rectangle(
+                            (start, len(J) - row - 1 - height/2),
+                            end - start,
+                            height,
+                            facecolor=patient_colors[patient], 
+                            alpha=0.6
+                        )
+                    )
+                    # Add label I#
+                    ax.text(
+                        (start + end) / 2,
+                        len(J) - row - 1,
+                        fr"$I_{{{patient}}}$",
+                        ha="center", va="center", weight="bold"
+                    )
+                else:
+                    ax.add_patch(
+                        patches.Rectangle(
+                            (start, len(J) - row - 1 - height/2),
+                            end - start,
+                            height,
+                            facecolor="gray", 
+                            alpha=0.6
+                        )
+                    )
+            else:
+                t += 1
+
+    # Set y-ticks as doctor labels
+    ax.set_yticks(range(len(J)))
+    ax.set_yticklabels([fr"$J_{{{j}}}$" for j in J[::-1]])  # reverse order for top-down
+    ax.set_xticks(T)
+    ax.set_xlabel("Time periods", weight="bold")
+    ax.set_ylabel("Doctors", weight="bold")
+    # ax.set_title("Schedules", weight="bold")
+
+    ax.set_xlim(0, len(T))
+    ax.set_ylim(-0.5, len(J) - 0.5)
+
+    plt.tight_layout()
+    plt.savefig(path, dpi=300)
+    plt.show()
