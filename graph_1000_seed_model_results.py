@@ -37,7 +37,7 @@ styles = {
 }
 
 # plot all 3 in one window
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 for i, (obj_key, obj_label) in enumerate(objectives.items()):
     ax = axes[i]
     for model_name, model_results in all_models.items():
