@@ -8,7 +8,7 @@ from typing import Dict, FrozenSet, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-file = "data_seed10_I10_J100_K3_T10.pkl"
+file = "data_seed10_I20_J100_K3_T20.pkl"
 print("Using", file)
 with open(file, "rb") as f:
     data = pickle.load(f)

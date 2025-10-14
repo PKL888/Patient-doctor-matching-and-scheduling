@@ -1,5 +1,6 @@
 import random
 import math
+import sys
 
 def gen_best(K):
     return [random.choice([1,2,3]) for k in K]
@@ -96,11 +97,20 @@ if __name__ == "__main__":
     random.seed(SEED)
 
     problem_size = {
-        "patients": 100,
-        "doctors":  10,
-        "diseases": 4,
-        "time periods": 20
-    }
+            "patients": 20,
+            "doctors":  5,
+            "diseases": 2,
+            "time periods": 20
+        }
+    if len(sys.argv) > 1: # have arguemnts
+        problem_size = {
+            "patients": int(sys.argv[1]),
+            "doctors":  int(sys.argv[2]),
+            "diseases": int(sys.argv[3]),
+            "time periods": int(sys.argv[4])
+        }
+        
+        
 
     I = range(problem_size["patients"])
     J = range(problem_size["doctors"])

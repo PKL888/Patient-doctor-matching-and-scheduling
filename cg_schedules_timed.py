@@ -5,9 +5,13 @@ from logging_results import *
 import pickle
 import time
 from typing import Dict, FrozenSet, Tuple, Optional
+import sys
 
 
-file = "data_seed10_I40_J4_K2_T20.pkl"
+file = "data_seed10_I20_J5_K2_T20.pkl"
+
+if len(sys.argv) > 1:
+    file = sys.argv[1]
 print("Using", file)
 with open(file, "rb") as f:
     data = pickle.load(f)
@@ -266,6 +270,7 @@ def find_all_patient_sets_for_doctor(doctor: int):
 # Run across all doctors
 # ==================================================
 S = {}
+time_taken_for_doctor = []
 for j in J:
 
     # create a thread / new process
@@ -278,6 +283,7 @@ for j in J:
 
     time_taken = time.perf_counter() - time_before
     print(f"time: {time_taken} s")
+    time_taken_for_doctor.append(time_taken)
 
 
 # for j in J:
@@ -298,8 +304,9 @@ data = {
     "T": T,
     "treat": treat,
     "patient_diseases": patient_diseases,
-    "doctor_times": doctor_times
+    "doctor_times": doctor_times,
+    "time_taken_for_doctor": time_taken_for_doctor
 }
 
-with open(f"cg_output.pkl", "wb") as f:
+with open(f"cg_smart_output_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
     pickle.dump(data, f)
