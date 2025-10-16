@@ -3,7 +3,7 @@ import pickle
 import subprocess
 import matplotlib.pyplot as plt
 
-i_s = [5, 10, 15, 20]
+i_s = [5, 10, 15, 20, 25]
 js = [5]
 ts = [20]
 ks = [2]
