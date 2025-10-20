@@ -62,4 +62,4 @@ data_names = ["cg_smart_output_I5_J5_T20_K2.pkl","cg_smart_output_I10_J5_T20_K2.
 
 # for data_name in data_names[:1]:
 #     do_huge(data_name)
-do_huge("cg_smart_output_I15_J5_T20_K2.pkl")
+do_huge("cg_smart_output_I25_J5_T20_K2.pkl")

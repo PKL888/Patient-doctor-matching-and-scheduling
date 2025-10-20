@@ -24,7 +24,10 @@ def parse_presolve_log(m, logfile="gurobi_presolve.log"):
 
 
 def optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times):
+    start_time = time.perf_counter()
     m.optimize()
+    print("optimising time:", time.perf_counter() - start_time)
+    
     Yvals = {key: Y[key].x for key in Y}
     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
 

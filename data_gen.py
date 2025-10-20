@@ -97,9 +97,9 @@ if __name__ == "__main__":
     random.seed(SEED)
 
     problem_size = {
-            "patients": 20,
-            "doctors":  5,
-            "diseases": 2,
+            "patients": 1000,
+            "doctors":  100,
+            "diseases": 10,
             "time periods": 20
         }
     if len(sys.argv) > 1: # have arguemnts
