@@ -142,6 +142,20 @@ SymmetryBreak = \
 }
 print("Break symmetry using breaks", time.perf_counter() - m_start)
 
+# -------------------- Objectives ----------------------------
+numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
+patientDoctorScore = [[(numberAvailableDoctors[i] - allocate_rank[i][j] + 1) / numberAvailableDoctors[i] for j in J] for i in I]
+patientTimeScore = [[(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T] for i in I]
+fragment_patient_scores = {j: {f: 
+                               (sum(
+                                   patientDoctorScore[i][j] 
+                                   + 
+                                   sum(patientTimeScore[i][t:min(t + treat[j][patient_diseases[i]], len(T))]) / treat[j][patient_diseases[i]]
+                             for i,t in f[PATIENT_TIME_LIST])) for f in F[j]} for j in J}
+
+
+obj0 = gp.quicksum(W[j][f] * fragment_patient_scores[j][f] for j in J for f in F[j])
+
 
 obj1 = gp.quicksum(W[j][f] * len(f[PATIENT_LIST]) for j in J for f in F[j])
 
@@ -151,9 +165,9 @@ doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[
 fragment_disease_scores = {j: {f: (sum(doctor_disease_rank_scores[j][patient_diseases[p]] for p in f[PATIENT_LIST])) for f in F[j]} for j in J}
 obj2 = gp.quicksum(W[j][f] * fragment_disease_scores[j][f] for j in J for f in F[j])
 
-objs = (0, obj1, obj2)
+objs = (obj0, obj1, obj2)
 objectives = []
-for obj_index in range(1,3):
+for obj_index in range(0,3):
     obj_lin_exp = objs[obj_index]
     m.setObjective(obj_lin_exp, gp.GRB.MAXIMIZE)
 
@@ -169,16 +183,16 @@ for obj_index in range(1,3):
 
 print("\n",objectives)
 
-def optimise_and_print_schedule_from_W_fragments(m, M1, W, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times):
-    start_time = time.perf_counter()
-    m.optimize()
-    print("optimising time:", time.perf_counter() - start_time)
+# def optimise_and_print_schedule_from_W_fragments(m, M1, W, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times):
+#     start_time = time.perf_counter()
+#     m.optimize()
+#     print("optimising time:", time.perf_counter() - start_time)
     
     
-    Yvals = {key: Y[key].x for key in Y}
-    Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
+#     Yvals = {key: Y[key].x for key in Y}
+#     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
 
-    schedule = create_schedule(Ys, K, J, I_k, T, treat)
-    print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
-    print_schedule(schedule, I, J, T, doctor_times)
-    plot_schedule(schedule, I, J, T, doctor_times, path="plot.png")
+#     schedule = create_schedule(Ys, K, J, I_k, T, treat)
+#     print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
+#     print_schedule(schedule, I, J, T, doctor_times)
+#     plot_schedule(schedule, I, J, T, doctor_times, path="plot.png")
