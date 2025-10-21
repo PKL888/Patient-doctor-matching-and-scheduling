@@ -1,0 +1,250 @@
+\documentclass{beamer}
+
+\usetheme{Madrid}
+
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, urlcolor=blue, linkcolor=white}
+\urlstyle{same}
+
+\setbeamertemplate{itemize subitem}{\textbf{$\rightarrow$}}
+
+\title[Doctor-patient matching \& scheduling]{Logic-based Benders decomposition for doctor-patient matching and scheduling considering chronic patients’ online consultation time preference}
+\author[Peleg, Tyler \& Hamish]{Peleg Kark-Levin \and Tyler Pearn \and Hamish McKay}
+\institute[MATH3205]{MATH3205 Paper Review Presentation}
+\date{Semester 2, 2025}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% \begin{frame}{Problem description}
+% \begin{block}{Digital healthcare}
+%     Online consultation platform for patients with \textbf{chronic diseases}.
+%   \begin{itemize}
+%     \item Patients have preferences over consultation times.
+%     \item Doctors have varying skill levels in treating different diseases
+%   \end{itemize}
+% \end{block}
+% \textbf{Multiple objectives:}    
+% \begin{enumerate}
+%     \item Maximise patient satisfaction (multidimensional)
+%     \item Maximise doctor satisfaction
+%     \item Maximise number of successful matches
+% \end{enumerate}
+% \textbf{Key constraints:}
+% \begin{itemize}
+%     \item Feasible time periods (doctor and patient availabilities overlap)
+%     \item Consultation lengths are dependant on doctor skill and disease type
+%     \item Patients have only one disease and are matched with one doctor
+%     \item Sufficient treatment time is guaranteed for successful matches
+% \end{itemize}
+% \end{frame}
+
+\begin{frame}{Problem description}
+\begin{block}{Digital healthcare}
+    Online consultation platform for patients with \textbf{chronic diseases}.
+  \begin{itemize}
+    \item Patients have preferences for consultation times and doctors
+    \item Doctors have preferences for diseases and varying appointment lengths for each disease
+  \end{itemize}
+\end{block}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{schedule_from_paper_example.png}
+    \caption{Example schedule}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Problem description}
+\textbf{Multiple objectives:}
+\begin{enumerate}
+    \item Maximise patient satisfaction: \\
+    \begin{itemize}
+        \item Satisfaction with the consultation time \\
+        \item Satisfaction with the doctor allocation \\
+    \end{itemize} \\
+    \item Maximise doctor satisfaction
+    \begin{itemize}
+        \item Satisfaction with the disease treated \\
+    \end{itemize} \\
+    \item Maximise number of successful matches
+\end{enumerate}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{schedule_from_paper_example.png}
+    \caption{Example schedule}
+\end{figure} 
+\end{frame}
+
+% \begin{frame}{Problem description}
+% \textbf{Key constraints:}
+% \begin{itemize}
+%     \item Feasible time periods (doctor and patient availabilities overlap)
+%     \item Consultation lengths are dependant on doctor skill and disease type
+%     \item Patients have only one disease and are matched with one doctor
+%     \item Sufficient treatment time is guaranteed for successful matches
+% \end{itemize}
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.5\linewidth]{schedule_from_paper_example.png}
+%     \caption{Example schedule}
+% \end{figure} 
+% \end{frame}
+
+\begin{frame}{Model formulation}
+    \textbf{Sets:}    
+    \begin{itemize}
+        \item $I$ Patients
+        \item $J$ Doctors
+        \item $K$ Disease types
+        \item $T$ Time periods
+        \item $I_k \subset I$ Patients who have disease $k 
+        \in K$
+    \end{itemize}
+    \textbf{Variables:}
+    \begin{itemize}
+        \item $x_{i,j,t}$: 1 if patient $i \in I$ \textbf{is in an appointment with} doctor $j \in J$ in time $t \in T$, 0 otherwise
+        \item $y_{i,j,t}$: 1 if patient $i \in I$ \textbf{starts} an appointment with doctor $j \in J$ in time $t \in T$, 0 otherwise
+    \end{itemize} 
+\end{frame}
+
+\begin{frame}{Model formulation}
+    Objective and constraints that use the $x_{ijt}$ variable: \\
+    \vspace{1em}
+    \textbf{Objective}: Patient preferences
+        $$ \sum_{i\in I} \sum_{i\in J} \sum_{t\in T} \text{patientTimeScore}_{it} x_{ijt} + \sum_{i\in I} \sum_{i\in J} \sum_{t\in T} \text{patientDoctorScore}_{ij} y_{ijt}$$
+    \textbf{Constraints:}
+    \begin{itemize}
+        \item Patients are not overbooked: 
+        $$
+        \sum_{j \in J} x_{ijt} \le 1 \quad
+         \forall i \in I, \forall t \in T$$
+        \item Link $x$ and $y$. If an appointment starts then it lasts the duration:
+        $$
+        \sum_{t'\in [t, t +\mathrm{treat}_{j,k}-1]} x_{i,j,t'} \ge \mathrm{treat}_{j,k} y_{ijt} \quad \forall k \in K, \forall i\in I_k, \forall j \in J, \forall t \in T
+        $$
+    \end{itemize}
+\end{frame}
+
+     
+\begin{frame}{Solution technique}
+  \begin{block}{Multiple objectives: $\varepsilon$-constraint method}
+    \begin{itemize}
+      \item Patient satisfaction is set as the primary objective (multidimensional).
+      \item Doctor satisfaction and the number of matches are \textit{transformed into constraints}, with lower bounds $\varepsilon_1\in\mathbb{R}$ and $\varepsilon_2\in\mathbb{Z}$
+      \item \textbf{Pareto optimal solutions:} Trace out the Pareto frontier by systematically varying the values of $\varepsilon_1$ and $\varepsilon_2$
+    \end{itemize}
+  \end{block}
+  \begin{block}{Logic-based Benders decomposition}
+    \begin{itemize}
+      \item \textbf{Master problem (matching):} Determine patient-doctor matches, maximising patient satisfaction with consultation time.
+      \item \textbf{Sub-problem (scheduling):} Determine consultation start times, maximising patient satisfaction with doctor and service duration.
+      \item \textbf{Logic-based cutting inequality:} Prevent cases where a doctor-patient match is included in one iteration but excluded later.
+    \end{itemize}
+  \end{block}
+\end{frame}
+\begin{frame}{Ideas for improvement}
+  \begin{itemize}
+    \item \textbf{Simplification:} Use a variable only for the \textit{start} of consultation.
+    \begin{itemize}
+      \item Avoids tracking ongoing interaction in each period.
+      \item Fixed consultation durations handle this automatically.
+    \end{itemize}
+    \item \textbf{Extension:} Reversing iteration order in generating Pareto frontier.
+    \begin{itemize}
+      \item First iterate on number of matches (discrete $\varepsilon_2$).
+      \item Then doctor satisfaction (continuous $\varepsilon_1$).
+      \item Potentially yields more structured approximations.
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Our model formulation}
+\textbf{Sets:}    
+\begin{itemize}
+    \item $I$ Patients
+    \item $J$ Doctors
+    \item $K$ Disease types
+    \item $T$ Time periods
+    \item $I_k \subset I$ patients which have disease $k\in K$
+    \end{itemize}
+\textbf{Data:}
+\begin{itemize}
+    \item Service times of qualified doctors ($\textrm{treat}_{j,k}$)
+    \item Doctor ranking (over diseases treated)
+    \item Patient ranking (over feasible times and doctor allocation)
+    \item Time windows for consultations (doctor and patient availability)
+\end{itemize}
+\textbf{Decision variable:}
+\begin{itemize}
+    \item $y_{i,j,t}\in\{0,1\}$  patient-doctor match $(i,j)$ begins in time period $t$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Our model formulation}
+\textbf{Constraints:}    
+\begin{itemize}
+    \item Patients are seen at most once:
+     \begin{gather*}
+         \sum_{j\in J} \sum_{t\in T} y_{i, j, t}  \le 1 \quad \forall i \in I
+     \end{gather*} 
+     \item Doctors only treat patients for diseases they are qualified to treat:
+     \begin{gather*}
+          y_{i, j, t} \le \text{qualified}_{j,k} \forall k \in K, i \in I^k, j \in J, t \in T
+     \end{gather*}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Our model formulation}
+\textbf{Constraints:}    
+\begin{itemize}
+    \item Doctors only treat one patient at a time:
+     \begin{gather*}
+         \sum_{k\in K} \sum_{i\in I^k} \sum_{t' \in [\textrm{minService}, t]} y_{i, j, t'}  \le 1 \quad \forall j \in J, t\in T
+     \end{gather*} 
+     \item Feasible time periods:
+     \begin{gather*}
+          \mathrm{doctorTime}_{j, t'} \cdot \mathrm{patientTime}_{i, t'} \geq y_{i, j, t} \\
+          \forall k \in K, i \in I^k, j \in J, t \in T, t' \in [t, t_{\textrm{maxService}}]
+     \end{gather*}
+     \begin{itemize}
+         \item $\textrm{minService} = \max\{0, t - \mathrm{treat}_{j, k}+1\}$ is the first service period 
+         \item $\textrm{maxService} = \min\{t + \mathrm{treat}_{j, k} + 1, |T|\}$ is the last service period.
+     \end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Our model formulation}
+We want to change the Patient satisfaction objective function. \\
+\vspace{1em}
+\textbf{Their objective function}
+$$ \sum_{i\in I} \sum_{i\in J} \sum_{t\in T} \text{patientTimeScore}_{it} x_{ijt} + \sum_{i\in I} \sum_{i\in J} \sum_{t\in T} \text{patientDoctorScore}_{ij} y_{ijt}$$
+
+\textbf{Our objective function}
+$$ \sum_{i\in I} \sum_{i\in J} \sum_{t\in T} (\text{patientTimeScore}_{it} +\text{patientDoctorScore}_{ij}) y_{ijt}$$
+
+We also want to change the calculations of $\text{patientTimeScore}_{it}$ and $\text{patientDoctorScore}_{ij}$.
+\end{frame}
+
+\begin{frame}{Data availability}
+We have replicated the data generation algorithms and will benchmark our algorithm against the same experimental setup.
+\begin{itemize}
+    \item \textbf{Data:} The authors generate synthetic data
+      \begin{itemize}
+        \item Partly arbitrary (parameters are randomly, uniformly distributed).
+        \item Informed by digital healthcare platform statistics.
+      \end{itemize}
+    \item \textbf{Simulation:} Instance sizes vary by number of patients and doctors.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Thank you}
+  \textbf{Reference:} Jiang et al. (2025). \textit{Logic-based Benders decomposition for doctor-patient matching and scheduling considering chronic patients’ online consultation time preference}. Computers \& Operations Research 183: 107207. 
+  \url{https://doi.org/10.1016/j.cor.2025.107207}
+\end{frame}
+
+\end{document}
