@@ -16,16 +16,33 @@ problem_size = {
     "time periods": 20
 }
 
+# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+# models to pick from: 
+#  feasibility, compatible times, doctor availability (Hamish)
+# huge formulations:
+#  "smart" column gen, fragments (Tyler)
+
+# user specifies if they want a:
+# - epsilon OR (Peleg)
+
+# Change output stuff to work with any model (can be specified in this file) (Hamish)
+#  From main we need to be able to specify outputs from running the files:
+# - call performance profiles
+# - gurobi output 
+# - get a schedule
+# - get a plot
+
+# - comparison tables - probably in a different file
+
+
+
+
 all_data = get_data(problem_size, seeds)
-# print("-"*100)
 for seed in seeds:
     data = all_data[f"seed_{seed}"]
-    # print(data.keys())
     globals().update(data)
 
 
-    # print("-"*100)
-    
     # choose model(s) --> run model(s)
     COMPATIBLE_TIMES = 1
 
