@@ -1,6 +1,8 @@
-import random
 import math
+import os
 import pickle
+import random
+import subprocess
 
 M1 = 1e6
 
@@ -95,14 +97,14 @@ def gen_patient_time_prefs(I, T, patient_available):
         ans.append(prefs)
     return ans
 
-def generate_data(problem_size, num_seeds=1):
+def generate_data(problem_size, seeds):
     """
     Generate doctor-patient problem datasets for a given problem size and number of seeds.
     Save to file.
     """
     all_data = {}
 
-    for seed in range(num_seeds):
+    for seed in seeds:
         random.seed(seed)
 
         I = list(range(problem_size["patients"]))
@@ -194,23 +196,63 @@ def generate_data(problem_size, num_seeds=1):
             "patientDoctorScore": patientDoctorScore,
             "patientTimeScore": patientTimeScore,
             "doctor_num_diseases_can_treat": doctor_num_diseases_can_treat,
-            "doctor_disease_rank_scores": doctor_disease_rank_scores
+            "doctor_disease_rank_scores": doctor_disease_rank_scores,
+            "M1": M1
         }
 
         all_data[f"seed_{seed}"] = data
 
     path = "data"
-    if num_seeds == 1:
-        filename = f"{path}/data_seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl"
+    if len(seeds) == 1:
+        filename = f"{path}/data_seed{seeds[0]}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl"
     else:
-        filename = f"{path}/all_data_{num_seeds}seeds_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl"
+        filename = f"{path}/all_data_{len(seeds)}seeds_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl"
     with open(filename, "wb") as f:
         pickle.dump(all_data, f)
     print(f"Saved all data to {filename}")
 
+
+def get_data(problem_size, seeds = [0]):
+    """
+    Loads or generates data.
+
+    Parameters
+    ----------
+
+    i, j, t, k : int
+        Problem parameters.
+
+    Returns
+    -------
+    data : as a dictionary 
+    """
+    i = problem_size["patients"]
+    j = problem_size["doctors"]
+    k = problem_size["diseases"]
+    t = problem_size["time periods"]
     
+    path = "data"
+    filename = ""
+    if len(seeds) == 1:
+        filename = f"{path}/data_seed{seeds[0]}_I{i}_J{j}_K{k}_T{t}.pkl"
+    else:
+        filename = f"{path}/all_data_{len(seeds)}seeds_I{i}_J{j}_K{k}_T{t}.pkl"
+    
+    # Try to open existing output
+    if not os.path.exists(filename):
+        print(f"[INFO] Data file {filename} not found. Running datagen...")
+        generate_data(problem_size, seeds)
+    else:
+        print(f"[INFO] Found data file {filename}")
+    with open(filename, "rb") as f:
+        data = pickle.load(f)
+
+    print(f"[INFO] Successfully loaded data for seeds {seeds}, I={i}, J={j}, T={t}, K={k}.")
+    return data
+
+
 if __name__ == "__main__":
-    num_seeds = 1
+    seeds = [1]
 
     problem_size = {
         "patients": 100,
@@ -219,4 +261,4 @@ if __name__ == "__main__":
         "time periods": 20
     }
 
-    generate_data(problem_size, num_seeds)
+    get_data(problem_size, seeds)
