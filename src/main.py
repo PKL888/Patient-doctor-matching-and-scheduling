@@ -68,10 +68,12 @@ for seed in seeds:
             m.setObjective(objective_1, gp.GRB.MAXIMIZE)
         else:
             m.setObjective(objective_2, gp.GRB.MAXIMIZE)
+    
+    model_type = 0
 
     # (check whether a data or output file already exists)
     m.setParam("OutputFlag", 1)
-    optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
+    optimise_and_print_schedule(model_type, m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
     
 
 # create summary tables or comparison plots
