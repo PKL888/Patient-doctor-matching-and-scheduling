@@ -49,8 +49,13 @@ for seed in seeds:
 
     # choose model(s) --> run model(s)
     if (model not in ["1", "2", "3"]):
+        # for optimise and print
+        Y = None
         break
     else:
+        # for optimise and print
+        Z = None
+        S = None
         if (model == "1"):
             m, Y, [objective_0, objective_1, objective_2], _ = make_feasibility_model(data)
         elif (model == "2"):
@@ -73,7 +78,7 @@ for seed in seeds:
 
     # (check whether a data or output file already exists)
     m.setParam("OutputFlag", 1)
-    optimise_and_print_schedule(model_type, m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
+    optimise_and_print_schedule(model_type, m, M1, Y, Z, S, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times, patient_diseases)
     
 
 # create summary tables or comparison plots

@@ -14,12 +14,29 @@ def left_pad_string(s, length):
         return s
     return " " * (length - len(s)) + s 
 
-def create_schedule(model_type, Ys, K, J, I_k, T, treat):
-    schedule = []
-    for j in J:
-        doctor_schedule = [int(patient - 1) for patient in [sum((Ys[i,j,tt] * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]]
-        schedule.append(doctor_schedule)
-    return schedule
+def create_schedule(model_type, Ys=None, Z=None, S=None, I=None, J=None, K=None, I_k=None, T=None, treat=None, patient_diseases=None):
+    if (model_type == 0):
+        schedule = []
+        for j in J:
+            doctor_schedule = [int(patient - 1) for patient in [sum((Ys[i,j,tt] * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]]
+            schedule.append(doctor_schedule)
+        return schedule
+    elif (model_type == 1):
+        schedule = []
+        for j in J:
+            chosen_s = None
+            for s in S[j]:
+                if Z[j, s].X > 0.5:
+                    chosen_s = s
+                    break
+            if chosen_s is None:
+                doctor_schedule = [-1 for _ in T]
+            else:
+                _, Y_values = S[j][chosen_s]
+                doctor_schedule = expand_schedule(Y_values, j, T, treat, patient_diseases)
+            schedule.append(doctor_schedule)
+        return schedule
+
 
 def print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs):
     numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
@@ -70,37 +87,6 @@ def expand_schedule(Y_values, doctor, T, treat, patient_diseases):
             if tt < len(T):
                 timeline[tt] = i
     return timeline
-
-def create_schedule_from_Z(Z, S, J, T, treat, patient_diseases):
-    schedule = []
-    for j in J:
-        chosen_s = None
-        for s in S[j]:
-            if Z[j, s].X > 0.5:
-                chosen_s = s
-                break
-        if chosen_s is None:
-            doctor_schedule = [-1 for _ in T]
-        else:
-            _, Y_values = S[j][chosen_s]
-            doctor_schedule = expand_schedule(Y_values, j, T, treat, patient_diseases)
-        schedule.append(doctor_schedule)
-    return schedule
-
-def print_schedule_from_Z(schedule, I, J, T, doctor_times):
-    padding = len(str(len(I)))
-    print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
-    for j, doctor_schedule in zip(J, schedule):
-        formatted = []
-        for t, patient in enumerate(doctor_schedule):
-            if patient == -1:
-                s_val = "-"
-            else:
-                s_val = str(patient)
-            if not doctor_times[j][t]:
-                s_val = " "
-            formatted.append(left_pad_string(s_val, padding))
-        print("doctor:", j, " ".join(formatted))
 
 def plot_schedule(schedule, I, J, T, doctor_times, path):
     fig, ax = plt.subplots(figsize=(8, 2))
@@ -195,16 +181,16 @@ def parse_presolve_log(m, logfile="outputs/logs/gurobi_presolve.log"):
     return presolve_info
 
 
-def optimise_and_print_schedule(model_type, m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times):
+def optimise_and_print_schedule(model_type, m, M1, Y, Z, S, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times, patient_diseases):
     m.optimize()
     Yvals = {key: Y[key].x for key in Y}
     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
-    schedule = create_schedule(model_type, Ys, K, J, I_k, T, treat)
+    schedule = create_schedule(model_type, Ys, Z, S, I, J, K, I_k, T, treat, patient_diseases)
     print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
     print_schedule(model_type, schedule, I, J, T, doctor_times)
     plot_schedule(schedule, I, J, T, doctor_times, path="plot.png")
 
-def optimise_and_collect(objective_name, m, Y, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs):
+def optimise_and_collect(model_type, objective_name, m, Y, Z, S, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, patient_diseases):
     start_obj_time = time.time()
     m.optimize()
     end_obj_time = time.time()
@@ -215,7 +201,7 @@ def optimise_and_collect(objective_name, m, Y, M1, I, J, K, T, I_k, treat, alloc
     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
 
     # Build schedule
-    schedule = create_schedule(Ys, K, J, I_k, T, treat)
+    schedule = create_schedule(model_type, Ys, Z, S, I, J, K, I_k, T, treat, patient_diseases)
 
     # Collect stats
     numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
