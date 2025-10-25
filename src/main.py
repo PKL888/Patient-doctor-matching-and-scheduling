@@ -4,6 +4,8 @@ import os
 import subprocess
 from utils.data_gen import get_data
 from compact.compatible_times import make_compatible_times_model 
+from compact.doctor_available import make_doctor_available_model 
+from compact.feasibility import make_feasibility_model 
 from utils.logging_results import optimise_and_print_schedule
 
 # specify problem size, number of seeds --> generate data
@@ -34,6 +36,8 @@ problem_size = {
 
 # - comparison tables - probably in a different file
 
+model = input("Please enter Model: [1: feasibility, 2: compatible_times, 3: doctor_available]:    ")
+obj = input("Please enter which objective to maximise: [1: number_of_appointments, 2: patient_satisfaction, 3: doctor_satisfaction]:  ")
 
 
 
@@ -44,12 +48,26 @@ for seed in seeds:
 
 
     # choose model(s) --> run model(s)
-    COMPATIBLE_TIMES = 1
+    if (model not in ["1", "2", "3"]):
+        break
+    else:
+        if (model == "1"):
+            m, Y, [objective_0, objective_1, objective_2], _ = make_feasibility_model(data)
+        elif (model == "2"):
+            m, Y, [objective_0, objective_1, objective_2], _ = make_compatible_times_model(data)
+        else:
+            m, Y, [objective_0, objective_1, objective_2], _ = make_doctor_available_model(data)
 
-    model = COMPATIBLE_TIMES
-
-    m, Y, [objective_0, objective_1, objective_2], _ = make_compatible_times_model(data)
-    m.setObjective(objective_1, gp.GRB.MAXIMIZE)
+    # choose model(s) --> run model(s)
+    if (obj not in ["1", "2", "3"]):
+        break
+    else:
+        if (obj == "1"):
+            m.setObjective(objective_0, gp.GRB.MAXIMIZE)
+        elif (obj == "2"):
+            m.setObjective(objective_1, gp.GRB.MAXIMIZE)
+        else:
+            m.setObjective(objective_2, gp.GRB.MAXIMIZE)
 
     # (check whether a data or output file already exists)
     m.setParam("OutputFlag", 1)
