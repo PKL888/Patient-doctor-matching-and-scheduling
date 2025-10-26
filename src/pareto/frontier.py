@@ -11,7 +11,7 @@ plt.rcParams.update({
 })
 
 
-def plot_pareto_2d(pareto, dom=None, labels=("Pareto", "Dominated"), save_path=None):
+def plot_pareto_2d(pareto, dom=None, labels=("Pareto", "Dominated"), save_path="outputs/graphs"):
     """Plot 2D projections with optional dominated points."""
     obj0, obj1, obj2 = zip(*pareto) if pareto else ([], [], [])
     d_obj0, d_obj1, d_obj2 = zip(*dom) if dom else ([], [], [])
@@ -43,7 +43,7 @@ def plot_pareto_2d(pareto, dom=None, labels=("Pareto", "Dominated"), save_path=N
     if save_path: plt.savefig(f"{save_path}/2d_plot.png", bbox_inches='tight', dpi=300)
     # plt.show()
 
-def plot_pareto_3d(pareto, save_path="outputs/images"):
+def plot_pareto_3d(pareto, save_path="outputs/graphs"):
     """Plot 3D Pareto frontier."""
     fig = plt.figure(figsize=(8,7))
     ax = fig.add_subplot(111, projection='3d')

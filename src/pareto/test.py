@@ -23,6 +23,6 @@ globals().update(pareto)
 # for i in missing:
 #     print(i)
 
-path = "outputs/images"
+path = "outputs/graphs"
 plot_pareto_2d(pareto_slack, dom_slack, save_path=path)
 plot_pareto_3d(pareto_slack, save_path=path)
