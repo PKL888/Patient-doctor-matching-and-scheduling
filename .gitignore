@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+plot.png
+gurobi_presolve.log
