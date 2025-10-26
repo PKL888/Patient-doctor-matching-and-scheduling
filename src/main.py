@@ -2,8 +2,10 @@
 import gurobipy as gp
 import os
 import subprocess
-from utils.data_gen import get_data
 from compact.compatible_times import make_compatible_times_model 
+from pareto.epsilon import make_pareto_frontier
+from pareto.frontier import *
+from utils.data_gen import get_data
 from utils.logging_results import optimise_and_print_schedule
 
 # specify problem size, number of seeds --> generate data
@@ -36,7 +38,6 @@ problem_size = {
 
 
 
-
 all_data = get_data(problem_size, seeds)
 for seed in seeds:
     data = all_data[f"seed_{seed}"]
@@ -44,16 +45,29 @@ for seed in seeds:
 
 
     # choose model(s) --> run model(s)
-    COMPATIBLE_TIMES = 1
+    model = "2"
 
-    model = COMPATIBLE_TIMES
-
-    m, Y, [objective_0, objective_1, objective_2], _ = make_compatible_times_model(data)
-    m.setObjective(objective_1, gp.GRB.MAXIMIZE)
-
-    # (check whether a data or output file already exists)
-    m.setParam("OutputFlag", 1)
-    optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
+    m, Y, objectives, _ = make_compatible_times_model(data)
+    [objective_0, objective_1, objective_2] = objectives
     
+    # choose algorithm
+    EPSILON = 1
+
+    if EPSILON:
+        m.setParam("OutputFlag", 0)
+        make_pareto_frontier(data, m, Y, objectives, model, dense=True)
+
+        # Pareto frontier plots
+        # plot_pareto_comparison_2d(pareto_slack, save_path="pareto_slack_2d.png")
+
+    else:
+        m.setObjective(objective_1, gp.GRB.MAXIMIZE)
+
+        # (check whether a data or output file already exists)
+        m.setParam("OutputFlag", 1)
+        optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
+        
 
 # create summary tables or comparison plots
+
+
