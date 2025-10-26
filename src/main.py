@@ -37,10 +37,19 @@ problem_size = {
 
 # - comparison tables - probably in a different file
 
-if __name__ == '__main__':
-    model = input("Please enter Model: [1: feasibility, 2: compatible_times, 3: doctor_available]:    ")
-    obj = input("Please enter which objective to maximise: [1: number_of_appointments, 2: patient_satisfaction, 3: doctor_satisfaction]:  ")
+FEASIBILITY = 1
+COMPATIBLE_TIMES = 2
+DOCTOR_AVAILABLE = 3
 
+NUM_APPOINTMENTS = 1
+PAT_SAT = 2
+DOC_SAT = 3
+
+if __name__ == '__main__':
+    model = int(input(f"Please enter Model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available]:    "))
+    obj = int(input(f"Please enter which objective to maximise: [{NUM_APPOINTMENTS}: number_of_appointments, {PAT_SAT}: patient_satisfaction, {DOC_SAT}: doctor_satisfaction]:  "))
+
+   
 
     all_data = get_data(problem_size, seeds)
     for seed in seeds:
@@ -63,8 +72,10 @@ if __name__ == '__main__':
         # m.optimize()
         # # optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
         
+
+
         # choose model(s) --> run model(s)
-        if (model not in ["1", "2", "3"]):
+        if (model not in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]):
             # for optimise and print
             Y = None
             break
@@ -72,23 +83,27 @@ if __name__ == '__main__':
             # for optimise and print
             Z = None
             S = None
-            if (model == "1"):
+            if (model == FEASIBILITY):
                 m, Y, [objective_0, objective_1, objective_2], _ = make_feasibility_model(data)
-            elif (model == "2"):
+            elif (model == COMPATIBLE_TIMES):
                 m, Y, [objective_0, objective_1, objective_2], _ = make_compatible_times_model(data)
-            else:
+            elif (model == DOCTOR_AVAILABLE):
                 m, Y, [objective_0, objective_1, objective_2], _ = make_doctor_available_model(data)
+            else:
+                print(f"model {model} not valid")
 
         # choose model(s) --> run model(s)
-        if (obj not in ["1", "2", "3"]):
+        if (obj not in [NUM_APPOINTMENTS, PAT_SAT, DOC_SAT]):
             break
         else:
-            if (obj == "1"):
+            if (obj == NUM_APPOINTMENTS):
                 m.setObjective(objective_0, gp.GRB.MAXIMIZE)
-            elif (obj == "2"):
+            elif (obj == PAT_SAT):
                 m.setObjective(objective_1, gp.GRB.MAXIMIZE)
-            else:
+            elif (obj ==DOC_SAT):
                 m.setObjective(objective_2, gp.GRB.MAXIMIZE)
+            else:
+                print("Not valid objective")
         
         model_type = 0
 
