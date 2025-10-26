@@ -7,8 +7,9 @@ from huge.cg_schedules_timed_multiprocessing import generate_schedules
 from huge.cg_schedules_timed import normal_generate_schedules
 import os
 import time
+from utils.data_instance import DataInstance
 
-def get_schedule_data(seed, i,j,t,k, gen_use_multiprocessing) -> dict[str, any]:
+def get_schedule_data(d:DataInstance, seed, i,j,t,k, gen_use_multiprocessing) -> dict[str, any]:
     multiprocessing_data_name = f"data/cg_subset_output_multiprocessing_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
     normal_data_name = f"data/cg_smart_output_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
 
@@ -33,16 +34,16 @@ def get_schedule_data(seed, i,j,t,k, gen_use_multiprocessing) -> dict[str, any]:
     print("-"*80)
     print(seed)
     # print(base_data)
-    globals().update(base_data)
+    # globals().update(base_data)
 
     # generate data
     if gen_use_multiprocessing:
-        generate_schedules(base_data)
+        generate_schedules(d)
         with open(multiprocessing_data_name, "rb") as f:
             data = pickle.load(f)
         return data
     else:
-        normal_generate_schedules(base_data)
+        normal_generate_schedules(d)
         with open(normal_data_name, "rb") as f:
             data = pickle.load(f)
         return data
@@ -53,9 +54,11 @@ def get_schedule_data(seed, i,j,t,k, gen_use_multiprocessing) -> dict[str, any]:
     
 
 
-def make_huge_model(seed, i,j,t,k, gen_use_multiprocessing: bool):
-    data = get_schedule_data(seed, i ,j ,t, k, gen_use_multiprocessing)
-    globals().update(data)
+def make_huge_model(d:DataInstance, seed, i,j,t,k, gen_use_multiprocessing: bool):
+    data = get_schedule_data(d, seed, i ,j ,t, k, gen_use_multiprocessing)
+    J = data["J"]
+    S = data["S"]
+    I = data["I"]
 
     # Initialise model
     m = gp.Model("Huge formulation")
@@ -97,7 +100,7 @@ def make_huge_model(seed, i,j,t,k, gen_use_multiprocessing: bool):
 
         
 
-    return m, Z, objectives, start_time - time.perf_counter()
+    return m, Z, objectives, start_time - time.perf_counter(), S
 
 
 
