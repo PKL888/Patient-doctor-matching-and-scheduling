@@ -1,11 +1,31 @@
 import gurobipy as gp
-# from data_gen import *
-# from schedule_printing import *
-# from logging_results import *
+from data_gen import *
+from schedule_printing import *
+from logging_results import *
 import pickle
 import time
 from typing import Dict, FrozenSet, Tuple, Optional
-import multiprocessing
+import sys
+
+
+file = "data_seed10_I20_J5_K2_T20.pkl"
+
+if len(sys.argv) > 1:
+    file = sys.argv[1]
+print("Using", file)
+with open(file, "rb") as f:
+    data = pickle.load(f)
+globals().update(data)
+
+d = gp.Model("dump model")
+
+I = range(problem_size["patients"])
+J = range(problem_size["doctors"])
+K = range(problem_size["diseases"])
+T = range(problem_size["time periods"])
+
+START = 0
+DURATION = 1
 
 # ----------------- Timing globals -----------------
 time_gen = 0.0
@@ -18,7 +38,6 @@ mip_feasible = 0
 def make_small_mip_model_doctor_availability(doctor:int, patients: set[int]):
     m = gp.Model("Small MIP")
     m.setParam("OutputFlag", 0)
-    m.setParam("Threads", 1)
 
     # -------------------- Variables -----------------------------
     Y = {
@@ -101,6 +120,60 @@ def make_small_mip_model_doctor_availability(doctor:int, patients: set[int]):
     m.setObjective(objective_0, gp.GRB.MAXIMIZE)
 
     return m, Y
+
+def make_small_mip_model_compatible_times(doctor:int, patients: set[int]):
+    m = gp.Model("Small MIP")
+    m.setParam("OutputFlag", 0)
+
+    # -------------------- Variables -----------------------------
+    Y = {
+        (i,doctor,t): m.addVar(vtype=gp.GRB.BINARY)
+        for i in patients for t in compatible_times[i,doctor]
+    }
+
+    # -------------------- Constraints ---------------------------
+    for i in patients:
+        m.addConstr(gp.quicksum(Y[i, doctor, t] for t in compatible_times[i, doctor]) == 1)
+
+    DoctorsAreNotOverbooked = {
+        t: m.addConstr(
+            gp.quicksum(Y[i,doctor,tt] 
+            for i in patients for tt in T[
+                max(0, t - treat[doctor][patient_diseases[i]] + 1):
+                t+1
+                ] 
+            if tt in compatible_times[i, doctor]) 
+            <= 1
+        )
+    for t in T}
+
+    # -------------------- Objectives ----------------------------
+    numberAvailableDoctors = {
+        i: sum(allocate_rank[i][jj] != M1 for jj in J)
+        for i in patients
+    }
+    patientDoctorScore = {
+        i: ((numberAvailableDoctors[i] - allocate_rank[i][doctor] + 1) / numberAvailableDoctors[i]
+            if allocate_rank[i][doctor] != M1 else 0)
+        for i in patients
+    }
+    patientTimeScore = {
+        i: [(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T]
+        for i in patients
+    }
+
+    objective_0 = gp.quicksum(
+        Y[i,doctor,t] * (
+            patientDoctorScore[i]
+            + sum(patientTimeScore[i][tt] for tt in range(t, min(t + treat[doctor][patient_diseases[i]], len(T))))
+            / treat[doctor][patient_diseases[i]]
+        )
+        for i in patients for t in compatible_times[i,doctor]
+    )
+    m.setObjective(objective_0, gp.GRB.MAXIMIZE)
+
+    return m, Y
+
 
 
 # ==================================================
@@ -196,152 +269,44 @@ def find_all_patient_sets_for_doctor(doctor: int):
 # ==================================================
 # Run across all doctors
 # ==================================================
-#S = {}
-def run_doctor_data(j: int):
+S = {}
+time_taken_for_doctor = []
+for j in J:
 
+    # create a thread / new process
+    # run threads/ processes
     print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
     max_appointments = doctor_available[j][1] // min([treat[j][k] for k in diseases_doctor_qualified_for[j]])
-    print(f"doctor: {j}, max appointments: {max_appointments} ", end = "")
+    print(f"max appointments: {max_appointments} ", end = "")
     time_before = time.perf_counter()
-    result = find_all_patient_sets_for_doctor(j)
+    S[j] = find_all_patient_sets_for_doctor(j)
 
     time_taken = time.perf_counter() - time_before
+    print(f"time: {time_taken} s")
+    time_taken_for_doctor.append(time_taken)
 
-    # 
-    #S[j] = result
-    #timings[j] = time_taken
 
-    print(f"doctor: {j}, time: {time_taken:.2f} s")
+# for j in J:
+    # get answer from each thread / process
 
-    return j, result, time_taken
 
-def generate_schedules(data):
-    globals().update(data)
-    start_general_timer = time.perf_counter()
+print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
+print(f"Total time making and solving small MIPs: {time_mip:.6f} s")
+print(f"Total time making small MIPs:             {(time_mip - time_in_mip_solver):.6f} s")
+print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
+print(f"Total MIP calls: {mip_calls}, feasible: {mip_feasible}")
 
-    manager = multiprocessing.Manager()
-    S = manager.dict()
-    timings = manager.dict()
+# Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
+data = {
+    "S": S,
+    "I": I,
+    "J": J,
+    "T": T,
+    "treat": treat,
+    "patient_diseases": patient_diseases,
+    "doctor_times": doctor_times,
+    "time_taken_for_doctor": time_taken_for_doctor
+}
 
-    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-        results = pool.map(run_doctor_data, J)
-
-    # Convert results to dicts
-    S = {}
-    timings = {}
-    for j, result, timing in results:
-        S[j] = result
-        timings[j] = timing
-
-    ### EXTRA CODE (NOT NEEDED)
-    # processes = []
-    # for j in J:
-    #     p = multiprocessing.Process(target=run_doctor_data, args=(j, S, timings))
-    #     p.start()
-    #     processes.append(p)
-
-    # count = 1
-    # for p in processes:
-    #     p.join()
-
-    # Optional: convert S to normal dict after joining
-    # S = dict(S)
-    # timings = dict(timings)
-
-    end_general_timer = time.perf_counter()
-    print(f"Total wall-clock time in parrallel:  {end_general_timer - start_general_timer:.6f} s")
-
-    print("Per-doctor process times:")
-    for j in sorted(timings):
-        print(f"  Doctor {j}: {timings[j]:.2f} s")
-
-    # print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
-    # print(f"Total time making and solbing small MIPs: {time_mip.value:.6f} s")
-    # print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
-    # print(f"Total MIP calls: {mip_calls.value}, feasible: {mip_feasible.value}")
-    data = {
-        "S": S,
-        "I": I,
-        "J": J,
-        "T": T,
-        "treat": treat,
-        "patient_diseases": patient_diseases,
-        "doctor_times": doctor_times
-    }
-
-    with open(f"cg_subset_output_multiprocessing_seed{seed}_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
-        pickle.dump(data, f)
-    return S
-
-if __name__ == "__main__":
-    file = "data_seed10_I20_J4_K2_T10.pkl"
-    print("Using", file)
-    with open(file, "rb") as f:
-        data = pickle.load(f)
-    globals().update(data)
-
-    d = gp.Model("dump model")
-
-    I = range(problem_size["patients"])
-    J = range(problem_size["doctors"])
-    K = range(problem_size["diseases"])
-    T = range(problem_size["time periods"])
-
-    START = 0
-    DURATION = 1
-    start_general_timer = time.perf_counter()
-
-    manager = multiprocessing.Manager()
-    #S = manager.dict()
-    #timings = manager.dict()
-
-    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-        results = pool.map(run_doctor_data, J)
-
-    # Convert results to dicts
-    S = {}
-    timings = {}
-    for j, result, timing in results:
-        S[j] = result
-        timings[j] = timing
-
-    ### EXTRA CODE (NOT NEEDED)
-    # processes = []
-    # for j in J:
-    #     p = multiprocessing.Process(target=run_doctor_data, args=(j, S, timings))
-    #     p.start()
-    #     processes.append(p)
-
-    # count = 1
-    # for p in processes:
-    #     p.join()
-
-    # Optional: convert S to normal dict after joining
-    # S = dict(S)
-    # timings = dict(timings)
-
-    end_general_timer = time.perf_counter()
-    print(f"Total wall-clock time in parrallel:  {end_general_timer - start_general_timer:.6f} s")
-
-    print("Per-doctor process times:")
-    for j in sorted(timings):
-        print(f"  Doctor {j}: {timings[j]:.2f} s")
-
-    # print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
-    # print(f"Total time making and solbing small MIPs: {time_mip.value:.6f} s")
-    # print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
-    # print(f"Total MIP calls: {mip_calls.value}, feasible: {mip_feasible.value}")
-
-    # Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
-    data = {
-        "S": S,
-        "I": I,
-        "J": J,
-        "T": T,
-        "treat": treat,
-        "patient_diseases": patient_diseases,
-        "doctor_times": doctor_times
-    }
-
-    with open(f"cg_subset_output_multiprocessing_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
-        pickle.dump(data, f)
+with open(f"cg_smart_output_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
+    pickle.dump(data, f)

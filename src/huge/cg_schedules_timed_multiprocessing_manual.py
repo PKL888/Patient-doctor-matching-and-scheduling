@@ -1,11 +1,28 @@
 import gurobipy as gp
-# from data_gen import *
-# from schedule_printing import *
-# from logging_results import *
+from data_gen import *
+from schedule_printing import *
+from logging_results import *
 import pickle
 import time
 from typing import Dict, FrozenSet, Tuple, Optional
 import multiprocessing
+
+
+file = "data_seed10_I20_J4_K2_T10.pkl"
+print("Using", file)
+with open(file, "rb") as f:
+    data = pickle.load(f)
+globals().update(data)
+
+d = gp.Model("dump model")
+
+I = range(problem_size["patients"])
+J = range(problem_size["doctors"])
+K = range(problem_size["diseases"])
+T = range(problem_size["time periods"])
+
+START = 0
+DURATION = 1
 
 # ----------------- Timing globals -----------------
 time_gen = 0.0
@@ -215,13 +232,12 @@ def run_doctor_data(j: int):
 
     return j, result, time_taken
 
-def generate_schedules(data):
-    globals().update(data)
+def generate_schedules():
     start_general_timer = time.perf_counter()
 
     manager = multiprocessing.Manager()
-    S = manager.dict()
-    timings = manager.dict()
+    #S = manager.dict()
+    #timings = manager.dict()
 
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         results = pool.map(run_doctor_data, J)
@@ -269,26 +285,11 @@ def generate_schedules(data):
         "doctor_times": doctor_times
     }
 
-    with open(f"cg_subset_output_multiprocessing_seed{seed}_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
+    with open(f"cg_subset_output_multiprocessing_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
         pickle.dump(data, f)
-    return S
+    # return S
 
 if __name__ == "__main__":
-    file = "data_seed10_I20_J4_K2_T10.pkl"
-    print("Using", file)
-    with open(file, "rb") as f:
-        data = pickle.load(f)
-    globals().update(data)
-
-    d = gp.Model("dump model")
-
-    I = range(problem_size["patients"])
-    J = range(problem_size["doctors"])
-    K = range(problem_size["diseases"])
-    T = range(problem_size["time periods"])
-
-    START = 0
-    DURATION = 1
     start_general_timer = time.perf_counter()
 
     manager = multiprocessing.Manager()

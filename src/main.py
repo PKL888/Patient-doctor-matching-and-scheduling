@@ -5,22 +5,23 @@ import subprocess
 from utils.data_gen import get_data
 from compact.compatible_times import make_compatible_times_model 
 from utils.logging_results import optimise_and_print_schedule
+from huge.cg_huge import make_huge_model
 
 # specify problem size, number of seeds --> generate data
 seeds = [1]
 
 problem_size = {
-    "patients": 100,
-    "doctors":  10,
-    "diseases": 4,
-    "time periods": 20
+    "patients": 20,
+    "doctors":  4,
+    "diseases": 1,
+    "time periods": 10
 }
 
 # TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
 # models to pick from: 
 #  feasibility, compatible times, doctor availability (Hamish)
 # huge formulations:
-#  "smart" column gen, fragments (Tyler)
+#  "smart" column gen, fragments (Tyler)😊
 
 # user specifies if they want a:
 # - epsilon OR (Peleg)
@@ -34,26 +35,29 @@ problem_size = {
 
 # - comparison tables - probably in a different file
 
+if __name__ == '__main__':
 
 
+    all_data = get_data(problem_size, seeds)
+    for seed in seeds:
+        data = all_data[f"seed_{seed}"]
+        globals().update(data)
 
-all_data = get_data(problem_size, seeds)
-for seed in seeds:
-    data = all_data[f"seed_{seed}"]
-    globals().update(data)
 
+        # choose model(s) --> run model(s)
+        COMPATIBLE_TIMES = 1
+        
+        SUBSET_HUGE = 11
 
-    # choose model(s) --> run model(s)
-    COMPATIBLE_TIMES = 1
+        model = SUBSET_HUGE
 
-    model = COMPATIBLE_TIMES
+        m, Z, [objective_0, objective_1, objective_2], _ = make_huge_model(seed, len(I), len(J), len(T), len(K), True)
+        m.setObjective(objective_1, gp.GRB.MAXIMIZE)
 
-    m, Y, [objective_0, objective_1, objective_2], _ = make_compatible_times_model(data)
-    m.setObjective(objective_1, gp.GRB.MAXIMIZE)
+        # (check whether a data or output file already exists)
+        m.setParam("OutputFlag", 1)
+        m.optimize()
+        # optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
+        
 
-    # (check whether a data or output file already exists)
-    m.setParam("OutputFlag", 1)
-    optimise_and_print_schedule(m, M1, Y, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times)
-    
-
-# create summary tables or comparison plots
+    # create summary tables or comparison plots

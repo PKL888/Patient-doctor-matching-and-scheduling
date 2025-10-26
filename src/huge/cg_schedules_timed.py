@@ -1,7 +1,7 @@
 import gurobipy as gp
-from data_gen import *
-from schedule_printing import *
-from logging_results import *
+# from data_gen import *
+# from schedule_printing import *
+# from logging_results import *
 import pickle
 import time
 from typing import Dict, FrozenSet, Tuple, Optional
@@ -266,47 +266,98 @@ def find_all_patient_sets_for_doctor(doctor: int):
         for patient_list, obj_values, Y_values, _ in all_tuple_schedules
     }
 
-# ==================================================
-# Run across all doctors
-# ==================================================
-S = {}
-time_taken_for_doctor = []
-for j in J:
 
-    # create a thread / new process
-    # run threads/ processes
-    print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
-    max_appointments = doctor_available[j][1] // min([treat[j][k] for k in diseases_doctor_qualified_for[j]])
-    print(f"max appointments: {max_appointments} ", end = "")
-    time_before = time.perf_counter()
-    S[j] = find_all_patient_sets_for_doctor(j)
-
-    time_taken = time.perf_counter() - time_before
-    print(f"time: {time_taken} s")
-    time_taken_for_doctor.append(time_taken)
 
 
 # for j in J:
     # get answer from each thread / process
 
+def normal_generate_schedules(data):
+    globals().update(data)
+    start_general_timer = time.perf_counter()
 
-print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
-print(f"Total time making and solving small MIPs: {time_mip:.6f} s")
-print(f"Total time making small MIPs:             {(time_mip - time_in_mip_solver):.6f} s")
-print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
-print(f"Total MIP calls: {mip_calls}, feasible: {mip_feasible}")
+    S = {}
+    time_taken_for_doctor = []
+    for j in J:
 
-# Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
-data = {
-    "S": S,
-    "I": I,
-    "J": J,
-    "T": T,
-    "treat": treat,
-    "patient_diseases": patient_diseases,
-    "doctor_times": doctor_times,
-    "time_taken_for_doctor": time_taken_for_doctor
-}
+        # create a thread / new process
+        # run threads/ processes
+        print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
+        max_appointments = doctor_available[j][1] // min([treat[j][k] for k in diseases_doctor_qualified_for[j]])
+        print(f"max appointments: {max_appointments} ", end = "")
+        time_before = time.perf_counter()
+        S[j] = find_all_patient_sets_for_doctor(j)
 
-with open(f"cg_smart_output_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
-    pickle.dump(data, f)
+        time_taken = time.perf_counter() - time_before
+        print(f"time: {time_taken} s")
+        time_taken_for_doctor.append(time_taken)
+    
+    end_general_timer = time.perf_counter()
+    print(f"Total wall-clock time in generating sets:  {end_general_timer - start_general_timer:.6f} s")
+
+    # print("Per-doctor process times:")
+    # for j in sorted(timings):
+    #     print(f"  Doctor {j}: {timings[j]:.2f} s")
+
+    # print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
+    # print(f"Total time making and solbing small MIPs: {time_mip.value:.6f} s")
+    # print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
+    # print(f"Total MIP calls: {mip_calls.value}, feasible: {mip_feasible.value}")
+    # Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
+    data = {
+        "S": S,
+        "I": I,
+        "J": J,
+        "T": T,
+        "treat": treat,
+        "patient_diseases": patient_diseases,
+        "doctor_times": doctor_times,
+        "time_taken_for_doctor": time_taken_for_doctor
+    }
+
+    with open(f"data/cg_smart_output_seed{seed}_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
+        pickle.dump(data, f)
+    
+    return S
+
+# CHECK!!!!!
+if __name__ == "__main__":
+    # ==================================================
+    # Run across all doctors
+    # ==================================================
+    S = {}
+    time_taken_for_doctor = []
+    for j in J:
+
+        # create a thread / new process
+        # run threads/ processes
+        print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
+        max_appointments = doctor_available[j][1] // min([treat[j][k] for k in diseases_doctor_qualified_for[j]])
+        print(f"max appointments: {max_appointments} ", end = "")
+        time_before = time.perf_counter()
+        S[j] = find_all_patient_sets_for_doctor(j)
+
+        time_taken = time.perf_counter() - time_before
+        print(f"time: {time_taken} s")
+        time_taken_for_doctor.append(time_taken)
+    
+    print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
+    print(f"Total time making and solving small MIPs: {time_mip:.6f} s")
+    print(f"Total time making small MIPs:             {(time_mip - time_in_mip_solver):.6f} s")
+    print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
+    print(f"Total MIP calls: {mip_calls}, feasible: {mip_feasible}")
+
+    # Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
+    data = {
+        "S": S,
+        "I": I,
+        "J": J,
+        "T": T,
+        "treat": treat,
+        "patient_diseases": patient_diseases,
+        "doctor_times": doctor_times,
+        "time_taken_for_doctor": time_taken_for_doctor
+    }
+
+    with open(f"cg_smart_output_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
+        pickle.dump(data, f)
