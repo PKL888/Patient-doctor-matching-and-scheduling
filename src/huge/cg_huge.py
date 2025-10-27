@@ -9,7 +9,7 @@ import os
 import time
 from utils.data_instance import DataInstance
 
-def get_schedule_data(d:DataInstance, seed, i,j,t,k, gen_use_multiprocessing) -> dict[str, any]:
+def get_schedule_data(d:DataInstance, seed, i,j,t,k) -> dict[str, any]:
     multiprocessing_data_name = f"data/cg_subset_output_multiprocessing_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
     normal_data_name = f"data/cg_smart_output_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
 
@@ -25,6 +25,14 @@ def get_schedule_data(d:DataInstance, seed, i,j,t,k, gen_use_multiprocessing) ->
             data = pickle.load(f)
         return data
     
+    mulit_ans = input(f"Columns have not been generated for seed:{seed} I:{i} J:{j} T:{t} K:{k}. Do you wish to generate columns? (y/n)")
+    if not mulit_ans[0] == 'y':
+        RuntimeError("Chose not to generate columns")
+
+
+    use_multi = input("Use multiprocessing to generate columns? (y/n)")[0] == 'y'
+    print("Using multiprocessing: ", use_multi)
+
     base_data_name = f"data/data_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
     if not os.path.exists(base_data_name):
         print(f"no data - {base_data_name} DNE")
@@ -37,7 +45,7 @@ def get_schedule_data(d:DataInstance, seed, i,j,t,k, gen_use_multiprocessing) ->
     # globals().update(base_data)
 
     # generate data
-    if gen_use_multiprocessing:
+    if use_multi:
         generate_schedules(d)
         with open(multiprocessing_data_name, "rb") as f:
             data = pickle.load(f)
@@ -54,8 +62,8 @@ def get_schedule_data(d:DataInstance, seed, i,j,t,k, gen_use_multiprocessing) ->
     
 
 
-def make_huge_model(d:DataInstance, seed, i,j,t,k, gen_use_multiprocessing: bool):
-    data = get_schedule_data(d, seed, i ,j ,t, k, gen_use_multiprocessing)
+def make_huge_model(d:DataInstance, seed, i,j,t,k):
+    data = get_schedule_data(d, seed, i ,j ,t, k)
     J = data["J"]
     S = data["S"]
     I = data["I"]

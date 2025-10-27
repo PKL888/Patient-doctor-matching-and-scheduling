@@ -8,6 +8,8 @@ from typing import Dict, FrozenSet, Tuple, Optional
 import multiprocessing
 from utils.data_instance import DataInstance
 
+START = 0
+DURATION = 1
 # ----------------- Timing globals -----------------
 time_gen = 0.0
 time_mip = 0.0
@@ -20,6 +22,12 @@ def make_small_mip_model_doctor_availability(doctor:int, patients: set[int], d: 
     m = gp.Model("Small MIP")
     m.setParam("OutputFlag", 0)
     m.setParam("Threads", 1)
+
+    T = d.T
+    J = d.J
+    # I = d.I
+    # K = d.K
+
 
     # -------------------- Variables -----------------------------
     Y = {
@@ -131,7 +139,7 @@ def find_best_schedule(doctor: int, patients: set[int], d: DataInstance) -> Tupl
         d.qualified[doctor][k] * (doctor_num_diseases_can_treat - d.doctor_rank[doctor][k] + 1)
         / doctor_num_diseases_can_treat
         + (1 - d.qualified[doctor][k]) * - d.M1
-        for k in K
+        for k in d.K
     ]
 
     obj0_value = m.ObjVal
@@ -151,8 +159,8 @@ def find_all_patient_sets_for_doctor(doctor: int, d: DataInstance):
     global time_gen
     t0 = time.perf_counter()
 
-    num_time_periods_available = doctor_available[doctor][1]
-    patients = patients_doctor_can_treat[doctor]
+    num_time_periods_available = d.doctor_available[doctor][1]
+    patients = d.patients_doctor_can_treat[doctor]
     schedules_n_patients = {0: [([], (0.0,0.0,0.0), {}, 0)]}
     schedules_n_patients[1] = []
 
@@ -169,7 +177,7 @@ def find_all_patient_sets_for_doctor(doctor: int, d: DataInstance):
         schedules_n_patients[n] = []
         for patient_list, _, _, time_used in schedules_n_patients[n - 1]:
             last_patient = patient_list[-1]
-            potential_patients = [(p, treat[doctor][patient_diseases[p]] + time_used) for p in patients if p > last_patient]
+            potential_patients = [(p, d.treat[doctor][d.patient_diseases[p]] + time_used) for p in patients if p > last_patient]
             for patient, new_time_used in potential_patients :
                 if new_time_used <= num_time_periods_available:
                     new_patient_list = patient_list + [patient]
@@ -216,10 +224,9 @@ def run_doctor_data(j: int, d: DataInstance):
 
     return j, result, time_taken
 
-def make_run_doctor_data(d:DataInstance):
-    def doc_data(j):
-        run_doctor_data(j, d)
-    return doc_data
+def run_doctor_data_wrapper(args):
+    j, d = args
+    return run_doctor_data(j, d)
 
 def generate_schedules(d: DataInstance):
     
@@ -230,7 +237,7 @@ def generate_schedules(d: DataInstance):
     timings = manager.dict()
 
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-        results = pool.map((make_run_doctor_data(d)), d.J)
+        results = pool.map(run_doctor_data_wrapper, [(j, d) for j in d.J])
 
     # Convert results to dicts
     S = {}
@@ -267,15 +274,15 @@ def generate_schedules(d: DataInstance):
     # print(f"Total MIP calls: {mip_calls.value}, feasible: {mip_feasible.value}")
     data = {
         "S": S,
-        "I": I,
-        "J": J,
-        "T": T,
-        "treat": treat,
-        "patient_diseases": patient_diseases,
-        "doctor_times": doctor_times
+        "I": d.I,
+        "J": d.J,
+        "T": d.T,
+        "treat": d.treat,
+        "patient_diseases": d.patient_diseases,
+        "doctor_times": d.doctor_times
     }
 
-    with open(f"cg_subset_output_multiprocessing_seed{seed}_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
+    with open(f"data/cg_subset_output_multiprocessing_seed{d.seed}_I{len(d.I)}_J{len(d.J)}_T{len(d.T)}_K{len(d.K)}.pkl", "wb") as f:
         pickle.dump(data, f)
     return S
 
@@ -293,8 +300,6 @@ if __name__ == "__main__":
     K = range(problem_size["diseases"])
     T = range(problem_size["time periods"])
 
-    START = 0
-    DURATION = 1
     start_general_timer = time.perf_counter()
 
     manager = multiprocessing.Manager()
@@ -349,5 +354,5 @@ if __name__ == "__main__":
         "doctor_times": doctor_times
     }
 
-    with open(f"cg_subset_output_multiprocessing_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
+    with open(f"data/cg_subset_output_multiprocessing_seed{d.seed}_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
         pickle.dump(data, f)

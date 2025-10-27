@@ -211,8 +211,8 @@ def find_best_schedule(d:DataInstance, doctor: int, patients: set[int]) -> Tuple
         for k in d.K
     ]
 
-    obj1_value = m.ObjVal
-    obj0_value = sum(Y[i,doctor,t].x for i in patients for t in d.compatible_times[i,doctor])
+    obj0_value = m.ObjVal
+    obj1_value = sum(Y[i,doctor,t].x for i in patients for t in d.compatible_times[i,doctor])
     obj2_value = sum(
         (doctor_disease_rank_scores[d.patient_diseases[i]]) * Y[i,doctor,t].x
         for i in patients for t in d.compatible_times[i,doctor]
@@ -334,7 +334,7 @@ if __name__ == "__main__":
     # Run across all doctors
     # ==================================================
 
-    file = "data/data_seed1_I20_J4_K1_T10.pkl"
+    file = "data_seed10_I20_J5_K2_T20.pkl"
 
     if len(sys.argv) > 1:
         file = sys.argv[1]
