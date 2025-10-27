@@ -1,9 +1,18 @@
-from compact.compatible_times import *
 import gurobipy as gp
 from math import ceil
 import os
+
+from compact.compatible_times import *
+from compact.doctor_available import *
+from compact.feasibility import *
 from utils.data_gen import *
 from utils.logging_results import *
+
+FEASIBILITY = 1
+COMPATIBLE_TIMES = 2
+DOCTOR_AVAILABLE = 3
+SUBSET_COLUMN_GEN = 8
+FRAGMENT_COLUMN_GEN = 9
 
 def pareto_filter_boolean(solutions, current):
     for other in solutions:
@@ -16,13 +25,20 @@ def mini_opti(m, Y, data, model):
 
     m.optimize()
 
-    # Compatible times
-    if model == "2":
-        Yvals = {key: Y[key].x for key in Y}
-        Ys = {(i, j, t): Yvals.get((i, j, t), 0) for i in I for j in J for t in T}
-        obj_stats = find_compatible_times_objectives(Ys, data)
+    Yvals = {key: Y[key].x for key in Y}
+    Ys = {(i, j, t): Yvals.get((i, j, t), 0) for i in I for j in J for t in T}
 
-        return obj_stats
+    if model == FEASIBILITY:
+        obj_stats = find_feasibility_objectives(Ys, data)
+    elif model == COMPATIBLE_TIMES:
+        obj_stats = find_compatible_times_objectives(Ys, data)
+    elif model == DOCTOR_AVAILABLE:
+        obj_stats = find_doctor_available_objectives(Ys, data)
+    else:
+        print("Model does not exist in Pareto options...")
+        return None
+
+    return obj_stats
 
 def compute_pareto_set(m, Y, objectives, data, model,
                        initial_lower_bound, initial_upper_bound,
@@ -130,10 +146,7 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
     m.setObjective(objective_2, gp.GRB.MAXIMIZE)
     doc_sat_objs = mini_opti(m, Y, data, model)
 
-    # ============================================================
-    # ----------------- Epsilon-constraint setup ----------------
-    # ============================================================
-
+    # Epsilon-constraint setup
     initial_upper_bound = [None, total_appts_objs[1], doc_sat_objs[2]]
     initial_lower_bound = [
         None,
@@ -146,21 +159,20 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
     EPS1Con = m.addConstr(objective_1 >= 0)
     EPS2Con = m.addConstr(objective_2 >= 0)
 
-    # ============================================================
-    # ------------- Generate or Load Pareto Results --------------
-    # ============================================================
-
-    # globals().update(data)
-
-    # Create filename
+    # Generate or load Pareto results
+    model_names = {
+        FEASIBILITY: "feasibility",
+        COMPATIBLE_TIMES: "compatible_times",
+        DOCTOR_AVAILABLE: "doctor_available"
+    }
     path = "outputs/results"
-    filename = (f"{path}/pareto_seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
+    filename = (f"{path}/pareto_{model_names[model]}_seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
 
     if os.path.exists(filename):
         # Load previously saved results
         with open(filename, "rb") as f:
             output = pickle.load(f)
-        print(f"📂 Loaded existing results from {filename}")
+        print(f"[INFO] Successfully loaded existing results from {filename}")
 
         pareto_slack = output.get("pareto_slack")
         dom_slack = output.get("dom_slack")
@@ -170,8 +182,9 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
             dom_dense = output.get("dom_dense")
 
     else:
-        # Compute both sets if file doesn’t exist
-        print("⚙️  Generating new Pareto sets...")
+        # Compute both sets if file does not exist
+        print("[INFO] Generating new Pareto frontier...")
+
         start_time = time.time()
         print("* Slack Pareto frontier")
         pareto_slack, dom_slack, pareto_ind_slack, dom_ind_slack = compute_pareto_set(m, Y, objectives, data, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=True, verbose=True)
@@ -203,21 +216,4 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
 
         with open(filename, "wb") as f:
             pickle.dump(output, f)
-        print(f"✅ Saved new results to {filename}")
-
-    # ============================================================
-    # ---------------- Compare Dense vs Slack --------------------
-    # ============================================================
-
-    print(len(pareto_slack))
-    if dense: print(len(pareto_dense))
-
-    print()
-
-    print(len(dom_slack))
-    if dense: print(len(dom_dense))
-
-    print()
-
-    print(round(slack_time,2))
-    if dense: print(round(dense_time,2))
+        print(f"[INFO] Saved pareto frontier to {filename}")

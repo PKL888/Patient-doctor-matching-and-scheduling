@@ -40,28 +40,30 @@ def make_huge_frag_model(d:DataInstance, max_frag_length):
 
     m_start = time.perf_counter()
     print("Starting to make model")
-    m = gp.Model("Fragment")
+    m = gp.Model("Fragments")
 
+    # Decision variables
     W = {j: {f: m.addVar(vtype=gp.GRB.BINARY) for f in F[j]} for j in J}
     print("Made W at ", time.perf_counter() - m_start)
 
-    # Each patient is assigned at most once
+    # Constraints
     PatientsAreAssignedOnlyOnce = {
-        i: m.addConstr(
+        i: 
+        m.addConstr(
             gp.quicksum(W[j][f] for j in J for f in F[j] if i in f[PATIENT_LIST]) <= 1
         )
         for i in I
     }
     print("Assign patients once", time.perf_counter() - m_start)
 
-
-    #fragments do not overlap
-    DoctorsAreNotOverbooked = \
-    {(j,t):
-    m.addConstr(gp.quicksum(W[j][f] for f in W[j] if (f[START_TIME] <= t and t < f[NEXT_AVAILABLE_TIME])) <= 1)
-    for j in J for t in T}
+    DoctorsAreNotOverbooked = {
+        (j,t):
+        m.addConstr(
+            gp.quicksum(W[j][f] for f in W[j] if (f[START_TIME] <= t and t < f[NEXT_AVAILABLE_TIME])) <= 1
+        )
+        for j in J for t in T
+    }
     print("Doctors no overlap", time.perf_counter() - m_start)
-
 
     # fragments come after no appointments or a full fragment
     # B is 1 if there was just a break
@@ -70,25 +72,26 @@ def make_huge_frag_model(d:DataInstance, max_frag_length):
         B[j, T[0]] = 1.0
     print("Made Bs", time.perf_counter() - m_start)
 
-
-    SetBreaks = \
-    {(j,t):
-    m.addConstr(B[j,t] == B[j, t-1] 
-                - gp.quicksum(W[j][f] for f in F[j] if f[START_TIME] == t - 1) # start in the previous time period
-                + gp.quicksum(W[j][f] for f in F[j] if f[NEXT_AVAILABLE_TIME] == t - 1) # ended in the previous time period
-                )
-    for j in J for t in T[1:]}
+    SetBreaks = {
+        (j,t):
+        m.addConstr(B[j,t] == B[j, t-1] 
+            - gp.quicksum(W[j][f] for f in F[j] if f[START_TIME] == t - 1) # start in the previous time period
+            + gp.quicksum(W[j][f] for f in F[j] if f[NEXT_AVAILABLE_TIME] == t - 1) # ended in the previous time period
+        )
+        for j in J for t in T[1:]
+    }
     print("Set break flow", time.perf_counter() - m_start)
 
-    SymmetryBreak = \
-    {(j, t):
-    # W[j][f] can only be on if the previous fragment was 3 or it is ont a break
-    m.addConstr(gp.quicksum(W[j][f] for f in fragments_by_start_time[j][t]) <= 
-                # a previous group of 3 appointments
-                gp.quicksum(W[j][f] for f in max_length_fragments_by_next_time[j][t])
-                + B[j,t]
-                )
-    for j in J for t in T
+    SymmetryBreak = {
+        (j, t):
+        # W[j][f] can only be on if the previous fragment was 3 or it is ont a break
+        m.addConstr(
+            gp.quicksum(W[j][f] for f in fragments_by_start_time[j][t]) <= 
+            # a previous group of 3 appointments
+            gp.quicksum(W[j][f] for f in max_length_fragments_by_next_time[j][t])
+            + B[j,t]
+        )
+        for j in J for t in T
     }
     print("Break symmetry using breaks", time.perf_counter() - m_start)
 

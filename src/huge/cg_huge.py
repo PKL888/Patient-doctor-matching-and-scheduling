@@ -72,19 +72,13 @@ def make_huge_model(d:DataInstance, seed, i,j,t,k):
     m = gp.Model("Huge formulation")
     start_time = time.perf_counter()
 
-    # ============================================================
-    # -------------------- Huge formulation ----------------------
-    # ============================================================
-
-    m = gp.Model("Doctor scheduling MIP")
-
-    # Doctor schedule
+    # Decision variables
     Z = {
         (j, s): m.addVar(vtype=gp.GRB.BINARY)
         for j in J for s in S[j]
     }
 
-    # Each patient is assigned at most once
+    # Constraints
     PatientsAreAssignedOnlyOnce = {
         i: m.addConstr(
             gp.quicksum(Z[j, s] for j in J for s in S[j] if i in s) <= 1
@@ -92,7 +86,6 @@ def make_huge_model(d:DataInstance, seed, i,j,t,k):
         for i in I
     }
 
-    # Each doctor has at most one schedule
     DoctorsHaveOnlyOneSchdeule = {
         j: m.addConstr(
             gp.quicksum(Z[j, s] for s in S[j]) == 1
@@ -102,11 +95,8 @@ def make_huge_model(d:DataInstance, seed, i,j,t,k):
 
     objectives = []
     for obj in range(3):
-        
         obj_expression = gp.quicksum(S[j][s][0][obj] * Z[j, s] for j in J for s in S[j])
         objectives.append(obj_expression)
-
-        
 
     return m, Z, objectives, start_time - time.perf_counter(), S
 

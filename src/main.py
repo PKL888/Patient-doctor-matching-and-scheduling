@@ -1,45 +1,27 @@
-# import all functions
 import gurobipy as gp
 import os
 import subprocess
+
 from compact.compatible_times import make_compatible_times_model 
 from compact.doctor_available import make_doctor_available_model 
 from compact.feasibility import make_feasibility_model 
+from huge.cg_fragments_formulation import make_huge_frag_model
+from huge.cg_huge import make_huge_model
 from pareto.epsilon import make_pareto_frontier
 from pareto.frontier import *
 from utils.data_gen import get_data
-from utils.logging_results import optimise_and_print_schedule
-from huge.cg_huge import make_huge_model
 from utils.data_instance import DataInstance
-from huge.cg_fragments_formulation import make_huge_frag_model
+from utils.logging_results import optimise_and_print_schedule
 
 # specify problem size, number of seeds --> generate data
 seeds = [1]
 
 problem_size = {
-    "patients": 20,
-    "doctors":  4,
-    "diseases": 1,
-    "time periods": 10
+    "patients": 100,
+    "doctors":  10,
+    "diseases": 4,
+    "time periods": 20
 }
-
-# TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO 
-# models to pick from: 
-#  feasibility, compatible times, doctor availability (Hamish)
-# huge formulations:
-#  "smart" column gen, fragments (Tyler)😊
-
-# user specifies if they want a:
-# - epsilon OR (Peleg)
-
-# Change output stuff to work with any model (can be specified in this file) (Hamish)
-#  From main we need to be able to specify outputs from running the files:
-# - call performance profiles
-# - gurobi output 
-# - get a schedule
-# - get a plot
-
-# - comparison tables - probably in a different file
 
 FEASIBILITY = 1
 COMPATIBLE_TIMES = 2
@@ -82,8 +64,8 @@ def make_model(model:int, data: dict, d: DataInstance):
         # actually meant to be the wrong way round, not a bug
         max_frag_length = int(input("Maximum fragment length (at least 2, 5 and up is very slow):    "))
         m, W, [objective_0, objective_1, objective_2], time, F = make_huge_frag_model(d, max_frag_length)
-    print(f"It took {time}s to generate model {model}")
-    return m, [objective_1, objective_0, objective_2], Y, Z, W, S, F
+    print(f"[INFO] Generating the model has taken {round(time, 4)} seconds")
+    return m, [objective_0, objective_1, objective_2], Y, Z, W, S, F
 
 def get_model():
     model = int(input(f"Please enter Model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
@@ -91,8 +73,6 @@ def get_model():
         print(f"{model} is not a valid model.")
         model = int(input(f"Please enter Model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
     return model
-
-
 
 def get_objective():
     obj = int(input(f"Please enter objective: [{NUM_APPOINTMENTS}: number of appointments, {PAT_SAT}: patient satisfaction, {DOC_SAT}: doctor satisfaction, {PARETO}: pareto frontier]:    "))
@@ -120,6 +100,7 @@ def set_objective(m: gp.Model, obj: int):
 
 if __name__ == '__main__':
     model = get_model()
+    print("Model:", model)
     obj = get_objective()
    
 
@@ -128,12 +109,12 @@ if __name__ == '__main__':
         data = all_data[f"seed_{seed}"]
         d = DataInstance(data)
 
-        m, [objective_1, objective_0, objective_2], Y, Z, W, S, F \
+        m, [objective_0, objective_1, objective_2], Y, Z, W, S, F \
         = make_model(model, data, d)
 
         if obj == PARETO:
             m.setParam("OutputFlag", 0)
-            make_pareto_frontier(data, m, Y, [objective_1, objective_0, objective_2], model, dense=True)
+            make_pareto_frontier(data, m, Y, [objective_0, objective_1, objective_2], model, dense=False)
             
         
         else:
@@ -149,7 +130,7 @@ if __name__ == '__main__':
 
             # (check whether a data or output file already exists)
             m.setParam("OutputFlag", 1)
-            optimise_and_print_schedule(model_type, m, d.M1, Y, Z, S, d.I, d.J, d.K, d.T, d.I_k, d.treat, d.allocate_rank, d.qualified, d.doctor_rank, d.patient_available, d.patient_time_prefs, d.doctor_times, d.patient_diseases)
+            optimise_and_print_schedule(model_type, model, m, d.M1, Y, Z, S, d.I, d.J, d.K, d.T, d.I_k, d.treat, d.allocate_rank, d.qualified, d.doctor_rank, d.patient_available, d.patient_time_prefs, d.doctor_times, d.patient_diseases)
         
         
         

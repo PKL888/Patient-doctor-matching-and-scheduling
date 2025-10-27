@@ -50,6 +50,8 @@ def make_compatible_times_model(data):
 
     # Construct model
     m.update()
+
+    # Record before presolve info
     setup_time = time.time() - start_time
     before_presolve_info = {
         "num_variables": m.NumVars,
@@ -57,7 +59,9 @@ def make_compatible_times_model(data):
         "num_nonzeros": m.NumNZs,
         "setup_time_seconds": setup_time
     }
-    m.setParam("LogFile", "gurobi_presolve.log")
+    path = "outputs/logs"
+    filename = (f"{path}/presolve_compatible_times_{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
+    m.setParam("LogFile", filename)
 
     objectives = find_compatible_times_objectives(Y, data)
 

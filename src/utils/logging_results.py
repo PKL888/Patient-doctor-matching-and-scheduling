@@ -9,6 +9,12 @@ plt.rcParams.update({
     "font.size": 12
 })
 
+FEASIBILITY = 1
+COMPATIBLE_TIMES = 2
+DOCTOR_AVAILABLE = 3
+SUBSET_COLUMN_GEN = 8
+FRAGMENT_COLUMN_GEN = 9
+
 def left_pad_string(s, length):
     if len(s) >= length:
         return s
@@ -42,11 +48,11 @@ def print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, 
     numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
     doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
     doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
-    print("Stats: -----------------------------------")
+    print("\nStats: -----------------------------------")
     print("Number of patients allocated:", round(sum(Ys[i,j,t] for i in I for j in J for t in T)))
     print("Patient satisfaction with doctor and time:", round(sum(Ys[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T)))
     print("Doctor satisfaction with diseases:", round(sum((doctor_disease_rank_scores[j][k]) * Ys[i,j,t] for k in K for i in I_k[k] for j in J for t in T)))
-    print("Appointments per doctor:", round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J))
+    print("\nSchedule: --------------------------------")
 
 def print_schedule(model_type, schedule, I, J, T, doctor_times):
     if (model_type == 0):
@@ -88,7 +94,7 @@ def expand_schedule(Y_values, doctor, T, treat, patient_diseases):
                 timeline[tt] = i
     return timeline
 
-def plot_schedule(schedule, I, J, T, doctor_times, path):
+def plot_schedule(schedule, I, J, K, T, doctor_times):
     fig, ax = plt.subplots(figsize=(8, 2))
 
     cmap = plt.cm.gist_rainbow  # rainbow colormap
@@ -156,7 +162,15 @@ def plot_schedule(schedule, I, J, T, doctor_times, path):
     ax.set_ylim(-0.5, len(J) - 0.5)
 
     plt.tight_layout()
-    plt.savefig(path, dpi=300)
+
+    model_names = {
+        FEASIBILITY: "feasibility",
+        COMPATIBLE_TIMES: "compatible_times",
+        DOCTOR_AVAILABLE: "doctor_available"
+    }
+    path = "outputs/images"
+    filename = (f"{path}/plot_{model_names[model]}_seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
+    plt.savefig(filename, dpi=300)
     plt.show()
 
 
@@ -181,14 +195,14 @@ def parse_presolve_log(m, logfile="outputs/logs/gurobi_presolve.log"):
     return presolve_info
 
 
-def optimise_and_print_schedule(model_type, m, M1, Y, Z, S, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times, patient_diseases):
+def optimise_and_print_schedule(model_type, model, m, M1, Y, Z, S, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times, patient_diseases):
     m.optimize()
     Yvals = {key: Y[key].x for key in Y}
     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
     schedule = create_schedule(model_type, Ys, Z, S, I, J, K, I_k, T, treat, patient_diseases)
     print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
     print_schedule(model_type, schedule, I, J, T, doctor_times)
-    plot_schedule(schedule, I, J, T, doctor_times, path="plot.png")
+    plot_schedule(schedule, I, J, K, T, doctor_times)
 
 def optimise_and_collect(model_type, objective_name, m, Y, Z, S, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, patient_diseases):
     start_obj_time = time.time()
