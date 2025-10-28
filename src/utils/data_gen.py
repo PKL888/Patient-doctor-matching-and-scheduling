@@ -2,7 +2,6 @@ import math
 import os
 import pickle
 import random
-import subprocess
 
 M1 = 1e6
 
@@ -211,7 +210,6 @@ def generate_data(problem_size, seeds):
         pickle.dump(all_data, f)
     print(f"Saved all data to {filename}")
 
-
 def get_data(problem_size, seeds = [0]):
     """
     Loads or generates data.
@@ -249,7 +247,6 @@ def get_data(problem_size, seeds = [0]):
 
     print(f"[INFO] Successfully loaded data for seeds {seeds}, I={i}, J={j}, T={t}, K={k}.")
     return data
-
 
 if __name__ == "__main__":
     seeds = [1]

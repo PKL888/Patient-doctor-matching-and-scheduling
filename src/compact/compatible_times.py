@@ -1,6 +1,16 @@
 import gurobipy as gp
 import time
 
+def find_compatible_times_objectives(Y, data):
+    # Objective expressions
+    objective_0 = sum(Y[i, j, t] * (patientDoctorScore[i][j] + sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]) for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j])
+
+    objective_1 = sum(Y[i, j, t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j])
+
+    objective_2 = sum(doctor_disease_rank_scores[j][k] * Y[i, j, t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j])
+
+    return [objective_0, objective_1, objective_2]
+
 def make_compatible_times_model(data):
     globals().update(data)
 
@@ -40,6 +50,8 @@ def make_compatible_times_model(data):
 
     # Construct model
     m.update()
+
+    # Record before presolve info
     setup_time = time.time() - start_time
     before_presolve_info = {
         "num_variables": m.NumVars,
@@ -47,20 +59,10 @@ def make_compatible_times_model(data):
         "num_nonzeros": m.NumNZs,
         "setup_time_seconds": setup_time
     }
-    m.setParam("LogFile", "gurobi_presolve.log")
+    path = "outputs/logs"
+    filename = (f"{path}/presolve_compatible_times_{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
+    m.setParam("LogFile", filename)
 
-    # Objective expressions
-    objective_0 = gp.quicksum(
-            Y[i, j, t] * (
-                patientDoctorScore[i][j] +
-                sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]
-            )
-            for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j]
-        )
+    objectives = find_compatible_times_objectives(Y, data)
 
-    objective_1 = gp.quicksum(Y[i, j, t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j])
-
-    objective_2 = \
-        gp.quicksum(doctor_disease_rank_scores[j][k] * Y[i, j, t] for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i, j])
-
-    return m, Y, [objective_0, objective_1, objective_2], setup_time
+    return m, Y, objectives, setup_time

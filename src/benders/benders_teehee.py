@@ -139,7 +139,7 @@ def Callback(model, where):
                 # cut off solution
                 # print(f"Cutting off patients {patients} for doctor {j}")
                 m.cbLazy(gp.quicksum(U[i,j] for i in limitingPatients) <= len(limitingPatients) - 1)
-                m.cbLazy(gp.quicksum(U[i,j] for i in patients) <= len(patients) - 1)
+                m.cbLazy(gp.quicksum(U[i,j] for i in patients) <= len(patients) - 1) # does this do nothing with previous constraint
 
             # IDEAS:
             # if there is a solution, cache it?

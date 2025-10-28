@@ -1,16 +1,31 @@
 import gurobipy as gp
-# from data_gen import *
-# from schedule_printing import *
-# from logging_results import *
+from data_gen import *
+from schedule_printing import *
+from logging_results import *
 import pickle
 import time
 from typing import Dict, FrozenSet, Tuple, Optional
 import sys
-from utils.data_instance import DataInstance
+
+
+file = "data_seed10_I20_J5_K2_T20.pkl"
+
+if len(sys.argv) > 1:
+    file = sys.argv[1]
+print("Using", file)
+with open(file, "rb") as f:
+    data = pickle.load(f)
+globals().update(data)
+
+d = gp.Model("dump model")
+
+I = range(problem_size["patients"])
+J = range(problem_size["doctors"])
+K = range(problem_size["diseases"])
+T = range(problem_size["time periods"])
 
 START = 0
 DURATION = 1
-
 
 # ----------------- Timing globals -----------------
 time_gen = 0.0
@@ -20,13 +35,10 @@ mip_calls = 0
 mip_feasible = 0
 
 
-def make_small_mip_model_doctor_availability(d: DataInstance, doctor:int, patients: set[int]):
+def make_small_mip_model_doctor_availability(doctor:int, patients: set[int]):
     m = gp.Model("Small MIP")
     m.setParam("OutputFlag", 0)
 
-    T = d.T
-    compatible_times = d.compatible_times
-    doctor_available = d.doctor_available
     # -------------------- Variables -----------------------------
     Y = {
         (i,doctor,t): m.addVar(vtype=gp.GRB.BINARY)
@@ -44,8 +56,6 @@ def make_small_mip_model_doctor_availability(d: DataInstance, doctor:int, patien
     for i in patients:
         m.addConstr(gp.quicksum(Y[i, doctor, t] for t in compatible_times[i, doctor]) == 1)
 
-    treat = d.treat
-    patient_diseases = d.patient_diseases
     for t in T[
         doctor_available[doctor][START] + 1:
         doctor_available[doctor][START] + doctor_available[doctor][DURATION]
@@ -85,10 +95,6 @@ def make_small_mip_model_doctor_availability(d: DataInstance, doctor:int, patien
     )
 
     # -------------------- Objectives ----------------------------
-    allocate_rank = d.allocate_rank
-    M1 = d.M1
-    J = d.J
-    # print("allocate_rank:", allocate_rank[i])
     numberAvailableDoctors = {
         i: sum(allocate_rank[i][jj] != M1 for jj in J)
         for i in patients
@@ -98,8 +104,6 @@ def make_small_mip_model_doctor_availability(d: DataInstance, doctor:int, patien
             if allocate_rank[i][doctor] != M1 else 0)
         for i in patients
     }
-    patient_available = d.patient_available
-    patient_time_prefs = d.patient_time_prefs
     patientTimeScore = {
         i: [(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T]
         for i in patients
@@ -117,11 +121,9 @@ def make_small_mip_model_doctor_availability(d: DataInstance, doctor:int, patien
 
     return m, Y
 
-def make_small_mip_model_compatible_times(d: DataInstance, doctor:int, patients: set[int]):
+def make_small_mip_model_compatible_times(doctor:int, patients: set[int]):
     m = gp.Model("Small MIP")
     m.setParam("OutputFlag", 0)
-    
-    compatible_times = d.compatible_times
 
     # -------------------- Variables -----------------------------
     Y = {
@@ -133,8 +135,6 @@ def make_small_mip_model_compatible_times(d: DataInstance, doctor:int, patients:
     for i in patients:
         m.addConstr(gp.quicksum(Y[i, doctor, t] for t in compatible_times[i, doctor]) == 1)
 
-    treat = d.treat
-    patient_diseases = d.patient_diseases
     DoctorsAreNotOverbooked = {
         t: m.addConstr(
             gp.quicksum(Y[i,doctor,tt] 
@@ -147,8 +147,6 @@ def make_small_mip_model_compatible_times(d: DataInstance, doctor:int, patients:
         )
     for t in T}
 
-    allocate_rank =d.allocate_rank
-    M1 = d.M1
     # -------------------- Objectives ----------------------------
     numberAvailableDoctors = {
         i: sum(allocate_rank[i][jj] != M1 for jj in J)
@@ -159,9 +157,6 @@ def make_small_mip_model_compatible_times(d: DataInstance, doctor:int, patients:
             if allocate_rank[i][doctor] != M1 else 0)
         for i in patients
     }
-
-    patient_available = d.patient_available
-    patient_time_prefs =d.patient_time_prefs
     patientTimeScore = {
         i: [(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T]
         for i in patients
@@ -184,12 +179,12 @@ def make_small_mip_model_compatible_times(d: DataInstance, doctor:int, patients:
 # ==================================================
 # Small MIP for a doctor and a set of patients
 # ==================================================
-def find_best_schedule(d:DataInstance, doctor: int, patients: set[int]) -> Tuple[bool, Optional[Dict[Tuple[int, int, int], int]], Optional[Tuple[float, float, float]]]:
+def find_best_schedule(doctor: int, patients: set[int]) -> Tuple[bool, Optional[Dict[Tuple[int, int, int], int]], Optional[Tuple[float, float, float]]]:
     global time_mip, mip_calls, mip_feasible, time_in_mip_solver
     mip_calls += 1
     t0 = time.perf_counter()
 
-    m, Y = make_small_mip_model_doctor_availability(d, doctor, patients)
+    m, Y = make_small_mip_model_doctor_availability(doctor, patients)
 
     t_begin_optimize = time.perf_counter()
     m.optimize()
@@ -203,19 +198,19 @@ def find_best_schedule(d:DataInstance, doctor: int, patients: set[int]) -> Tuple
 
     mip_feasible += 1
 
-    doctor_num_diseases_can_treat = sum(d.qualified[doctor])
+    doctor_num_diseases_can_treat = sum(qualified[doctor])
     doctor_disease_rank_scores = [
-        d.qualified[doctor][k] * (doctor_num_diseases_can_treat - d.doctor_rank[doctor][k] + 1)
+        qualified[doctor][k] * (doctor_num_diseases_can_treat - doctor_rank[doctor][k] + 1)
         / doctor_num_diseases_can_treat
-        + (1 - d.qualified[doctor][k]) * - d.M1
-        for k in d.K
+        + (1 - qualified[doctor][k]) * - M1
+        for k in K
     ]
 
     obj0_value = m.ObjVal
-    obj1_value = sum(Y[i,doctor,t].x for i in patients for t in d.compatible_times[i,doctor])
+    obj1_value = sum(Y[i,doctor,t].x for i in patients for t in compatible_times[i,doctor])
     obj2_value = sum(
-        (doctor_disease_rank_scores[d.patient_diseases[i]]) * Y[i,doctor,t].x
-        for i in patients for t in d.compatible_times[i,doctor]
+        (doctor_disease_rank_scores[patient_diseases[i]]) * Y[i,doctor,t].x
+        for i in patients for t in compatible_times[i,doctor]
     )
 
     Y_values = {(i, doctor, t): Y[i, doctor, t].x for (i, doctor, t) in Y if Y[i, doctor, t].x >= 0.9}
@@ -224,21 +219,17 @@ def find_best_schedule(d:DataInstance, doctor: int, patients: set[int]) -> Tuple
 # ==================================================
 # Generate all feasible patient sets for a doctor
 # ==================================================
-def find_all_patient_sets_for_doctor(d: DataInstance, doctor: int):
+def find_all_patient_sets_for_doctor(doctor: int):
     global time_gen
     t0 = time.perf_counter()
 
-    
-    treat = d.treat
-    patient_diseases = d.patient_diseases
-
-    num_time_periods_available = d.doctor_available[doctor][1]
-    patients = d.patients_doctor_can_treat[doctor]
+    num_time_periods_available = doctor_available[doctor][1]
+    patients = patients_doctor_can_treat[doctor]
     schedules_n_patients = {0: [([], (0,0,0), {}, 0)]}
     schedules_n_patients[1] = []
 
     for patient in patients:
-        feasible, Y_values, obj_values = find_best_schedule(d, doctor, {patient})
+        feasible, Y_values, obj_values = find_best_schedule(doctor, {patient})
         if feasible:
             #                                                                length of time it takes for doctor to treat that disease
             schedules_n_patients[1].append(([patient], obj_values, Y_values, treat[doctor][patient_diseases[patient]]))
@@ -254,7 +245,7 @@ def find_all_patient_sets_for_doctor(d: DataInstance, doctor: int):
             for patient, new_time_used in potential_patients :
                 if new_time_used <= num_time_periods_available:
                     new_patient_list = patient_list + [patient]
-                    feasible, Y_values, obj_values = find_best_schedule(d, doctor, set(new_patient_list))
+                    feasible, Y_values, obj_values = find_best_schedule(doctor, set(new_patient_list))
                     if feasible:
                         schedules_n_patients[n].append((new_patient_list, obj_values, Y_values, new_time_used))
                         total_schedules += 1
@@ -275,115 +266,47 @@ def find_all_patient_sets_for_doctor(d: DataInstance, doctor: int):
         for patient_list, obj_values, Y_values, _ in all_tuple_schedules
     }
 
+# ==================================================
+# Run across all doctors
+# ==================================================
+S = {}
+time_taken_for_doctor = []
+for j in J:
 
+    # create a thread / new process
+    # run threads/ processes
+    print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
+    max_appointments = doctor_available[j][1] // min([treat[j][k] for k in diseases_doctor_qualified_for[j]])
+    print(f"max appointments: {max_appointments} ", end = "")
+    time_before = time.perf_counter()
+    S[j] = find_all_patient_sets_for_doctor(j)
+
+    time_taken = time.perf_counter() - time_before
+    print(f"time: {time_taken} s")
+    time_taken_for_doctor.append(time_taken)
 
 
 # for j in J:
     # get answer from each thread / process
 
-def normal_generate_schedules(d: DataInstance):
-    start_general_timer = time.perf_counter()
 
-    S = {}
-    time_taken_for_doctor = []
-    for j in d.J:
+print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
+print(f"Total time making and solving small MIPs: {time_mip:.6f} s")
+print(f"Total time making small MIPs:             {(time_mip - time_in_mip_solver):.6f} s")
+print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
+print(f"Total MIP calls: {mip_calls}, feasible: {mip_feasible}")
 
-        # create a thread / new process
-        # run threads/ processes
-        print(f"doctor: {j}, diseases: {d.diseases_doctor_qualified_for[j]}, treat times: {[d.treat[j][k] for k in d.diseases_doctor_qualified_for[j]]}, length available: {d.doctor_available[j][1]}, ")
-        max_appointments = d.doctor_available[j][1] // min([d.treat[j][k] for k in d.diseases_doctor_qualified_for[j]])
-        print(f"max appointments: {max_appointments} ", end = "")
-        time_before = time.perf_counter()
-        S[j] = find_all_patient_sets_for_doctor(d, j)
+# Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
+data = {
+    "S": S,
+    "I": I,
+    "J": J,
+    "T": T,
+    "treat": treat,
+    "patient_diseases": patient_diseases,
+    "doctor_times": doctor_times,
+    "time_taken_for_doctor": time_taken_for_doctor
+}
 
-        time_taken = time.perf_counter() - time_before
-        print(f"time: {time_taken} s")
-        time_taken_for_doctor.append(time_taken)
-    
-    end_general_timer = time.perf_counter()
-    print(f"Total wall-clock time in generating sets:  {end_general_timer - start_general_timer:.6f} s")
-
-    # print("Per-doctor process times:")
-    # for j in sorted(timings):
-    #     print(f"  Doctor {j}: {timings[j]:.2f} s")
-
-    # print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
-    # print(f"Total time making and solbing small MIPs: {time_mip.value:.6f} s")
-    # print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
-    # print(f"Total MIP calls: {mip_calls.value}, feasible: {mip_feasible.value}")
-    # Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
-    data = {
-        "S": S,
-        "I": d.I,
-        "J": d.J,
-        "T": d.T,
-        "treat": d.treat,
-        "patient_diseases": d.patient_diseases,
-        "doctor_times": d.doctor_times,
-        "time_taken_for_doctor": time_taken_for_doctor
-    }
-
-    with open(f"data/cg_smart_output_seed{d.seed}_I{len(d.I)}_J{len(d.J)}_T{len(d.T)}_K{len(d.K)}.pkl", "wb") as f:
-        pickle.dump(data, f)
-    
-    return S
-
-# CHECK!!!!!
-if __name__ == "__main__":
-    # ==================================================
-    # Run across all doctors
-    # ==================================================
-
-    file = "data_seed10_I20_J5_K2_T20.pkl"
-
-    if len(sys.argv) > 1:
-        file = sys.argv[1]
-    print("Using", file)
-    with open(file, "rb") as f:
-        data = pickle.load(f)
-    globals().update(data)
-
-    d = gp.Model("dump model")
-
-    I = range(problem_size["patients"])
-    J = range(problem_size["doctors"])
-    K = range(problem_size["diseases"])
-    T = range(problem_size["time periods"])
-
-
-    S = {}
-    time_taken_for_doctor = []
-    for j in J:
-
-        # create a thread / new process
-        # run threads/ processes
-        print(f"doctor: {j}, diseases: {diseases_doctor_qualified_for[j]}, treat times: {[treat[j][k] for k in diseases_doctor_qualified_for[j]]}, length available: {doctor_available[j][1]}, ")
-        max_appointments = doctor_available[j][1] // min([treat[j][k] for k in diseases_doctor_qualified_for[j]])
-        print(f"max appointments: {max_appointments} ", end = "")
-        time_before = time.perf_counter()
-        S[j] = find_all_patient_sets_for_doctor(d, j)
-
-        time_taken = time.perf_counter() - time_before
-        print(f"time: {time_taken} s")
-        time_taken_for_doctor.append(time_taken)
-    
-    print(f"Total wall-clock time in set generation:  {time_gen:.6f} s")
-    print(f"Total time making and solving small MIPs: {time_mip:.6f} s")
-    print(f"Total time making small MIPs:             {(time_mip - time_in_mip_solver):.6f} s")
-    print(f"Total time solving small MIPs:            {time_in_mip_solver:.6f} s")
-    print(f"Total MIP calls: {mip_calls}, feasible: {mip_feasible}")
-
-    # Save schedules to pickle, along with necessary variables to run the huge model and print the schedules
-    data = {
-        "S": S,
-        "I": I,
-        "J": J,
-        "T": T,
-        "treat": treat,
-        "patient_diseases": patient_diseases,
-        "doctor_times": doctor_times,
-        "time_taken_for_doctor": time_taken_for_doctor
-    }
-
-    with open(f"cg_smart_output_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
-        pickle.dump(data, f)
+with open(f"cg_smart_output_I{len(I)}_J{len(J)}_T{len(T)}_K{len(K)}.pkl", "wb") as f:
+    pickle.dump(data, f)
