@@ -6,3 +6,7 @@ Set parameter LogFile to value "outputs/logs/presolve_doctor_available_6_I30_J3_
 Gurobi 12.0.3 (win64) logging started Tue Oct 28 13:37:10 2025
 
 Set parameter LogFile to value "outputs/logs/presolve_doctor_available_6_I30_J3_K3_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 13:54:51 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_6_I30_J3_K3_T20.pkl"
