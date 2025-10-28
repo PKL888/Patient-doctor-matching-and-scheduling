@@ -14,7 +14,7 @@ from utils.data_instance import DataInstance
 from utils.logging_results import optimise_and_print_schedule
 
 # specify problem size, number of seeds --> generate data
-seeds = [18]
+seeds = [19]
 
 
 
@@ -92,10 +92,10 @@ if __name__ == '__main__':
     obj = user_objective()
 
     problem_size = {
-        "patients": 100,
-        "doctors":  10,
-        "diseases": 3,
-        "time periods": 20
+        "patients": 10,
+        "doctors":  4,
+        "diseases": 2,
+        "time periods": 10
     }
 
     all_data = get_data(problem_size, seeds)

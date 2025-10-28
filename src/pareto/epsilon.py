@@ -32,7 +32,7 @@ def pareto_filter_boolean(solutions, current):
 def mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model):
     m.optimize()
 
-    Vs = get_values_for_model(Y, Z, W, S, F, model, data, d)
+    Vs ,objs = get_values_for_model(Y, Z, W, S, F, model, data, d)
 
     if model == FEASIBILITY:
         obj_stats = find_feasibility_objectives(Vs, d, data)
@@ -49,7 +49,7 @@ def mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model):
     return obj_stats
 
 def compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T,
-                       objectives, data, model,
+                       objectives, data, d:DataInstance, model,
                        initial_lower_bound, initial_upper_bound,
                        EPS1Con, EPS2Con, delta_eps,
                        use_slack=True, verbose=True):
@@ -142,7 +142,7 @@ def compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T,
 
     return pareto_solutions, dominated_solutions, pareto_indices, dominated_indices
 
-def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, d, dense = True):
+def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, d: DataInstance, dense = True):
     # Initial optimisation: maximise each objective individually to get bounds
     [objective_0, objective_1, objective_2] = objectives
 
@@ -170,7 +170,7 @@ def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, 
 
     # Generate or load Pareto results
     path = "outputs/results"
-    filename = (f"{path}/pareto_{model_names[model]}_seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
+    filename = (f"{path}/pareto_{model_names[model]}_seed{d.seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
 
     if os.path.exists(filename):
         # Load previously saved results
@@ -191,13 +191,13 @@ def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, 
 
         start_time = time.time()
         print("* Slack Pareto frontier")
-        pareto_slack, dom_slack, pareto_ind_slack, dom_ind_slack = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=True, verbose=True)
+        pareto_slack, dom_slack, pareto_ind_slack, dom_ind_slack = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, d, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=True, verbose=True)
         slack_time = time.time() - start_time
 
         if dense:
             print("* Dense Pareto frontier")
             start_time = time.time()
-            pareto_dense, dom_dense, pareto_ind_dense, dom_ind_dense = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=False, verbose=True)
+            pareto_dense, dom_dense, pareto_ind_dense, dom_ind_dense = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, d, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=False, verbose=True)
             dense_time = time.time() - start_time
 
         output = {

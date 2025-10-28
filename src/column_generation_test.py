@@ -3,14 +3,15 @@ from utils.data_gen import get_data
 import time
 from utils.data_instance import DataInstance
 import matplotlib.pyplot as plt
+import pickle
 
-i_s = [5, 10, 15, 20, 25,30,35,40,50,60]
-js = [5]
+i_s = [10, 20, 30,40,50,60,60,70,80,90,100]
+js = [10]
 ts = [20]
 ks = [2]
 ns = [2,3,4,5]
 
-def test_fragments(i_s, j, t, k, ns, seed = 10):
+def test_fragments(i_s, j, t, k, ns, seed = 11):
     
     times_for_is = {n: [] for n in ns}
     for i in i_s:
@@ -30,13 +31,15 @@ def test_fragments(i_s, j, t, k, ns, seed = 10):
         for n in ns:
             print(f"i: {i}, n: {n}")
             start_time = time.perf_counter()
-            normal_generate_fragments(d, n, save_output=False)
+            normal_generate_fragments(d, n, save_output=True)
             time_genning = time.perf_counter() - start_time
             times_for_is[n].append(time_genning)
     return times_for_is
 
 
 times_for_is = test_fragments(i_s, js[0], ts[0], ks[0] ,ns)
+with open(f"times_for_is_{i_s=},_{js=},{ts},{ks=},{ns=}", "wb") as f:
+    data = pickle.dump(times_for_is, f)
 
 def plot_fragment_generation_times(times_for_is: dict[int, list[float]], i_s: list[int]):
     """

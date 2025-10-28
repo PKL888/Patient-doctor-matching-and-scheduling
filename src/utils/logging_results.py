@@ -201,7 +201,8 @@ def get_values_for_model(Y, Z, W, S, F, model, data, d):
             objectives = find_feasibility_objectives(Ys, d, data)
         elif model == COMPATIBLE_TIMES:
             objectives = find_compatible_times_objectives(Ys, data)
-        elif model == DOCTOR_AVAILABLE:
+        else:
+            assert model == DOCTOR_AVAILABLE
             objectives = find_doctor_available_objectives(Ys, data)
         
         return Ys, objectives
@@ -215,9 +216,9 @@ def get_values_for_model(Y, Z, W, S, F, model, data, d):
         return Zs, objectives
     
     elif model == FRAGMENT_COLUMN_GEN:
-        Wvals = {key: W[key].x for key in W}
-        Ws = {(j, f): Wvals.get((j, f), 0) for j in J for f in F[j]}
-        return Ws
+        # Wvals = {key: W[key].x for key in W}
+        Ws = {(j, f): W[j][f].x for j in J for f in F[j]}
+        return Ws, objectives
 
 def print_stats(Y, Z, W, S, F, model, data, objectives):
     [objective_0, objective_1, objective_2] = objectives
