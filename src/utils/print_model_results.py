@@ -154,7 +154,7 @@ def summarize_results(all_results, model_name):
 import os
 
 
-def summarize_pareto_slack_results(seeds, file_template="outputs/results/pareto_doctor_available_seed{seed}_I30_J3_K3_T10.pkl"):
+def summarize_pareto_slack_results(seeds, I, J, K, T, file_template="outputs/results/pareto_doctor_available_seed{seed}_I{I}_J{J}_K{K}_T{T}.pkl"):
     """
     Loop through saved seed files, extract Pareto slack info and slack times,
     and print summary statistics (mean, std, min, max).
@@ -162,9 +162,13 @@ def summarize_pareto_slack_results(seeds, file_template="outputs/results/pareto_
     num_solutions_slack = []
     num_dominated_slack = []
     slack_times = []
+    i = I
+    j = J
+    k = K
+    t = T
 
     for seed in seeds:
-        filename = file_template.format(seed=seed)
+        filename = file_template.format(seed=seed, I=i, J=j, K=k, T=t)
         if not os.path.exists(filename):
             print(f"[WARNING] File {filename} not found, skipping.")
             continue

@@ -13,33 +13,60 @@ from src.huge import *
 from src.compact.doctor_available import make_doctor_available_model  
 from src.utils.data_gen import get_data  
 
+import os
+import pickle
+import time
 
-def epsilon_runs(model_type, problem_size, seeds):
-    # Seeds to run
-    all_pareto_results = {}
+def epsilon_runs(model_type, problem_size, seeds, dense=True):
+    """
+    Run epsilon experiments for given seeds.
+    If a seed file already exists, just read its runtime instead of recomputing.
+    Returns a list of runtimes.
+    """
+    run_times = []
 
-    run_times = [0] * len(seeds)
-
-    # Generate/load data
+    # Preload all data
     all_data = get_data(problem_size, seeds)
+
+    # Folder for saving/loading results
+    path = "outputs/results"
+    os.makedirs(path, exist_ok=True)
+    model_names = {
+        FEASIBILITY: "feasibility",
+        COMPATIBLE_TIMES: "compatible_times",
+        DOCTOR_AVAILABLE: "doctor_available"
+    }
+
+    I, J, K, T = problem_size["patients"], problem_size["doctors"], problem_size["diseases"], problem_size["time periods"]
+
     for seed in seeds:
-        print(f"\n=== Running seed {seed} ===")
+        filename = f"{path}/pareto_{model_names[model_type]}_seed{seed}_I{I}_J{J}_K{K}_T{T}.pkl"
 
-        # Generate/load data
-        data = all_data[f"seed_{seed}"]
+        if os.path.exists(filename):
+            # Load existing result
+            with open(filename, "rb") as f:
+                data = pickle.load(f)
+            run_time = data.get("slack_time", 0)
+            if dense:
+                run_time += data.get("dense_time", 0)
+            print(f"[INFO] Seed {seed} already computed, loaded runtime {run_time:.2f}s")
+        else:
+            print(f"\n=== Running seed {seed} ===")
+            data = all_data[f"seed_{seed}"]
 
-        start_time = time.time()
+            start_time = time.time()
 
-        # Build model, variables, objectives
-        m, Y, objectives, setup_time = make_doctor_available_model(data)
-        m.setParam("OutputFlag", 0)
+            # Build model, variables, objectives
+            m, Y, objectives, setup_time = make_doctor_available_model(data)
+            m.setParam("OutputFlag", 0)
 
-        make_pareto_frontier(data, m, Y, objectives, model_type, dense=True)
+            # Compute Pareto frontier
+            make_pareto_frontier(data, m, Y, objectives, model_type, dense=dense)
 
-        end_time = time.time()
+            run_time = time.time() - start_time
+            print(f"[INFO] Seed {seed} completed in {run_time:.2f}s")
 
-        run_times.append(end_time - start_time)
+        run_times.append(run_time)
 
     print("[INFO] Finished computing Pareto frontiers for all seeds.")
-
     return run_times

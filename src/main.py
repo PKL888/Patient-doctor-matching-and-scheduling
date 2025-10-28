@@ -26,7 +26,7 @@ from outputs.results import *
 from src.huge import *
 
 # specify problem size, number of seeds --> generate data
-seeds = [10]
+seeds = [1]
 
 problem_size = {
     "patients": 100,
@@ -167,8 +167,8 @@ if __name__ == '__main__':
     if (pareto_table == 1):
 
         epsilon_problem_size = {
-            "patients": 30,
-            "doctors":  3,
+            "patients": 50,
+            "doctors":  5,
             "diseases": 3,
             "time periods": 20
         }
@@ -179,7 +179,8 @@ if __name__ == '__main__':
         run_times = epsilon_runs(DOCTOR_AVAILABLE, epsilon_problem_size, seeds)
 
         # Call function to summarize results
-        summarize_pareto_slack_results(seeds)
+        summarize_pareto_slack_results(seeds, epsilon_problem_size["patients"], epsilon_problem_size["doctors"],
+                                       epsilon_problem_size["diseases"], epsilon_problem_size["time periods"])
 
         # Convert to numpy array for convenience
         run_times = np.array(run_times, dtype=float)
