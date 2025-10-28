@@ -2,11 +2,15 @@ import gurobipy as gp
 from math import ceil
 import os
 
-from compact.compatible_times import *
-from compact.doctor_available import *
-from compact.feasibility import *
-from utils.data_gen import *
-from utils.logging_results import *
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+from src.compact.compatible_times import *
+from src.compact.doctor_available import *
+from src.compact.feasibility import *
+from src.utils.data_gen import *
+from src.utils.logging_results import *
 
 FEASIBILITY = 1
 COMPATIBLE_TIMES = 2

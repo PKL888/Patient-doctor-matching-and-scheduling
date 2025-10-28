@@ -1,6 +1,8 @@
 import gurobipy as gp
+import pickle
 import os
 import subprocess
+import numpy as np
 
 from compact.compatible_times import make_compatible_times_model 
 from compact.doctor_available import make_doctor_available_model 
@@ -9,12 +11,22 @@ from huge.cg_fragments_formulation import make_huge_frag_model
 from huge.cg_huge import make_huge_model
 from pareto.epsilon import make_pareto_frontier
 from pareto.frontier import *
+from pareto.epsilon_10_instances import epsilon_runs
 from utils.data_gen import get_data
 from utils.data_instance import DataInstance
 from utils.logging_results import optimise_and_print_schedule
+from utils.graph_1000_seed_model_results import plot_model_files
+from utils.print_model_results import summarize_results
+from utils.print_model_results import summarize_pareto_slack_results
+# import output result data
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+from outputs.results import *
+from src.huge import *
 
 # specify problem size, number of seeds --> generate data
-seeds = [1]
+seeds = [10]
 
 problem_size = {
     "patients": 100,
@@ -120,9 +132,9 @@ if __name__ == '__main__':
         else:
             set_objective(m, obj)
 
-            model_type = 0
-            # if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
-            #     model_type = 0
+            model_type = -1
+            if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
+                model_type = 0
             if model == SUBSET_COLUMN_GEN:
                 model_type = 1
             if model == FRAGMENT_COLUMN_GEN:
@@ -130,11 +142,57 @@ if __name__ == '__main__':
 
             # (check whether a data or output file already exists)
             m.setParam("OutputFlag", 1)
-            optimise_and_print_schedule(model_type, model, m, d.M1, Y, Z, S, d.I, d.J, d.K, d.T, d.I_k, d.treat, d.allocate_rank, d.qualified, d.doctor_rank, d.patient_available, d.patient_time_prefs, d.doctor_times, d.patient_diseases)
+            optimise_and_print_schedule(model_type, seed, model, m, d.M1, Y, Z, S, d.I, d.J, d.K, d.T, d.I_k, d.treat, d.allocate_rank, d.qualified, d.doctor_rank, d.patient_available, d.patient_time_prefs, d.doctor_times, d.patient_diseases)
         
         
-        
+    # plot basic models
+    plot = int(input("Do you want to print the compact model performance profiles or column generation: 1: Compact Models, 2: Column Generation, 3: None       "))
+    if (plot == 1):
+        model_files = {
+            "Feasibility": "outputs/results/F_all_1000_seeds_model_results.pkl",
+            "Compatible times": "outputs/results/CT_all_1000_seeds_model_results.pkl",
+            "Doctor available": "outputs/results/DA_all_1000_seeds_model_results.pkl",
+        }
 
+        plot_model_files(model_files, 1)
+    elif (plot == 2):
+        model_files = {
+            "Singular:": "src/huge/cg_schedules_timed_all_100_seeds_model_results.pkl",
+            "Multiproccessing: ": "src/huge/cg_schedules_timed_multiproccessing_all_100_seed_model_results.pkl"
+        }
+        
+        plot_model_files(model_files, 2)
+
+    pareto_table = int(input("Do you want to print Epsilon Model table output fo 10 instances: 1: Yes, 2: No     "))
+    if (pareto_table == 1):
+
+        epsilon_problem_size = {
+            "patients": 30,
+            "doctors":  3,
+            "diseases": 3,
+            "time periods": 20
+        }
+
+        # Seeds 1 through 10
+        seeds = range(1, 11)
+        
+        run_times = epsilon_runs(DOCTOR_AVAILABLE, epsilon_problem_size, seeds)
+
+        # Call function to summarize results
+        summarize_pareto_slack_results(seeds)
+
+        # Convert to numpy array for convenience
+        run_times = np.array(run_times, dtype=float)
+
+        # Compute statistics
+        mean_time = np.mean(run_times)
+        min_time = np.min(run_times)
+        max_time = np.max(run_times)
+        std_time = np.std(run_times)
+
+        # Print nicely
+        print(f"Run times (s): mean = {mean_time:.2f}, std = {std_time:.2f}, min = {min_time:.2f}, max = {max_time:.2f}")
+                
        
             
 

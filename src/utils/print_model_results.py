@@ -1,5 +1,10 @@
 import pickle
 import numpy as np
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from outputs.results import *
+from src.huge import *
 
 def summarize_results(all_results, model_name):
     """Aggregate presolve info and solver statistics across 100 seeds."""
@@ -146,10 +151,50 @@ def summarize_results(all_results, model_name):
     print("\nEND OF MODEL SUMMARY")
     print("="*100 + "\n")
 
+import os
 
-if __name__ == "__main__":
-    file_path = "F_all_1000_seeds_model_results.pkl"
-    with open(file_path, "rb") as f:
-        all_results = pickle.load(f)
 
-    summarize_results(all_results, model_name="Doctor Available Model")
+def summarize_pareto_slack_results(seeds, file_template="outputs/results/pareto_doctor_available_seed{seed}_I30_J3_K3_T10.pkl"):
+    """
+    Loop through saved seed files, extract Pareto slack info and slack times,
+    and print summary statistics (mean, std, min, max).
+    """
+    num_solutions_slack = []
+    num_dominated_slack = []
+    slack_times = []
+
+    for seed in seeds:
+        filename = file_template.format(seed=seed)
+        if not os.path.exists(filename):
+            print(f"[WARNING] File {filename} not found, skipping.")
+            continue
+
+        with open(filename, "rb") as f:
+            data = pickle.load(f)
+
+        pareto_slack = data.get("pareto_slack") or []
+        dom_slack = data.get("dom_slack") or []
+        slack_time = data.get("slack_time")  # or data.get("total_runtime") if you saved runtime
+
+        num_solutions_slack.append(len(pareto_slack))
+        num_dominated_slack.append(len(dom_slack))
+        if slack_time is not None:
+            slack_times.append(slack_time)
+
+    # Convert to numpy arrays
+    num_solutions_slack = np.array(num_solutions_slack, dtype=float)
+    num_dominated_slack = np.array(num_dominated_slack, dtype=float)
+    slack_times = np.array(slack_times, dtype=float)
+
+    def mean_std_min_max(arr):
+        if len(arr) == 0:
+            return np.nan, np.nan, np.nan, np.nan
+        return np.mean(arr), np.std(arr), np.min(arr), np.max(arr)
+
+    mean_s, std_s, min_s, max_s = mean_std_min_max(num_solutions_slack)
+    mean_d, std_d, min_d, max_d = mean_std_min_max(num_dominated_slack)
+    mean_t, std_t, min_t, max_t = mean_std_min_max(slack_times)
+
+    print(f"Average number of Pareto-optimal solutions (slack): {mean_s:.2f} ± {std_s:.2f} (min={min_s}, max={max_s})")
+    print(f"Average number of dominated solutions (slack):      {mean_d:.2f} ± {std_d:.2f} (min={min_d}, max={max_d})")
+    print(f"Average slack computation time (s):                 {mean_t:.2f} ± {std_t:.2f} (min={min_t:.2f}, max={max_t:.2f})")
