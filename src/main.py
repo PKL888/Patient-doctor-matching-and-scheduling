@@ -3,6 +3,8 @@ import pickle
 import os
 import subprocess
 import numpy as np
+import re
+import pandas as pd
 
 from compact.compatible_times import make_compatible_times_model 
 from compact.doctor_available import make_doctor_available_model 
@@ -167,8 +169,8 @@ if __name__ == '__main__':
     if (pareto_table == 1):
 
         epsilon_problem_size = {
-            "patients": 50,
-            "doctors":  5,
+            "patients": 100,
+            "doctors":  10,
             "diseases": 3,
             "time periods": 20
         }

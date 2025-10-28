@@ -61,7 +61,8 @@ def epsilon_runs(model_type, problem_size, seeds, dense=True):
             m.setParam("OutputFlag", 0)
 
             # Compute Pareto frontier
-            make_pareto_frontier(data, m, Y, objectives, model_type, dense=dense)
+            # dense is false
+            make_pareto_frontier(data, m, Y, objectives, model_type, dense=False)
 
             run_time = time.time() - start_time
             print(f"[INFO] Seed {seed} completed in {run_time:.2f}s")
