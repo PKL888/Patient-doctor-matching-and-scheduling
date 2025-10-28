@@ -1,17 +1,22 @@
 import gurobipy as gp
 import time
 
-def find_feasibility_objectives(Y, data):
+def find_feasibility_objectives(Y, d, data):
+    I = d.I
+    J = d.J
+    K = d.K
+    T = d.T
+    
     # Objective expressions
-    objective_0 = sum(Y[i,j,t] * (patientDoctorScore[i][j] + sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k])for k in K for i in I_k[k] for j in J for t in T)
+    objective_0 = sum(Y[i,j,t] * (d.patientDoctorScore[i][j] + sum(d.patientTimeScore[i][t:min(t + d.treat[j][k], len(T))]) / d.treat[j][k]) for k in K for i in d.I_k[k] for j in J for t in T)
 
     objective_1 = sum(Y[i,j,t] for i in I for j in J for t in T)
     
-    objective_2 = sum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J for t in T)
+    objective_2 = sum((d.doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in d.I_k[k] for j in J for t in T)
 
     return [objective_0, objective_1, objective_2]
 
-def make_feasibility_model(data):
+def make_feasibility_model(d, data):
     globals().update(data)
 
     # Initialise model
@@ -73,6 +78,6 @@ def make_feasibility_model(data):
     filename = (f"{path}/presolve_feasibility_{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
     m.setParam("LogFile", filename)
 
-    objectives = find_feasibility_objectives(Y, data)
+    objectives = find_feasibility_objectives(Y, d, data)
     
     return m, Y, objectives, setup_time

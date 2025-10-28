@@ -5,6 +5,7 @@ import os
 from compact.compatible_times import *
 from compact.doctor_available import *
 from compact.feasibility import *
+from huge.cg_huge import *
 from utils.data_gen import *
 from utils.logging_results import *
 
@@ -14,33 +15,41 @@ DOCTOR_AVAILABLE = 3
 SUBSET_COLUMN_GEN = 8
 FRAGMENT_COLUMN_GEN = 9
 
+model_names = {
+    FEASIBILITY: "feasibility",
+    COMPATIBLE_TIMES: "compatible_times",
+    DOCTOR_AVAILABLE: "doctor_available",
+    SUBSET_COLUMN_GEN: "subset_column_gen",
+    FRAGMENT_COLUMN_GEN: "fragment_column_gen"
+}
+
 def pareto_filter_boolean(solutions, current):
     for other in solutions:
         if all(o_i >= c_i - 1e-5 for o_i, c_i in zip(other, current)):
             return True
     return False
 
-def mini_opti(m, Y, data, model):
-    globals().update(data)
-
+def mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model):
     m.optimize()
 
-    Yvals = {key: Y[key].x for key in Y}
-    Ys = {(i, j, t): Yvals.get((i, j, t), 0) for i in I for j in J for t in T}
+    Vs = get_values_for_model(Y, Z, W, S, F, model, data, d)
 
     if model == FEASIBILITY:
-        obj_stats = find_feasibility_objectives(Ys, data)
+        obj_stats = find_feasibility_objectives(Vs, d, data)
     elif model == COMPATIBLE_TIMES:
-        obj_stats = find_compatible_times_objectives(Ys, data)
+        obj_stats = find_compatible_times_objectives(Vs, data)
     elif model == DOCTOR_AVAILABLE:
-        obj_stats = find_doctor_available_objectives(Ys, data)
+        obj_stats = find_doctor_available_objectives(Vs, data)
+    elif model == SUBSET_COLUMN_GEN:
+        obj_stats = find_huge_objectives(Vs, J, S) # only need J out of data
     else:
         print("Model does not exist in Pareto options...")
         return None
 
     return obj_stats
 
-def compute_pareto_set(m, Y, objectives, data, model,
+def compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T,
+                       objectives, data, model,
                        initial_lower_bound, initial_upper_bound,
                        EPS1Con, EPS2Con, delta_eps,
                        use_slack=True, verbose=True):
@@ -71,7 +80,7 @@ def compute_pareto_set(m, Y, objectives, data, model,
         # Maximise objective 2 to find upper bound
         m.setObjective(objective_2)
         EPS2Con.RHS = initial_lower_bound[2]
-        obj_stats = mini_opti(m, Y, data, model)
+        obj_stats = mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model)
         eps2_upper_bound = obj_stats[2]
         num_s = ceil((eps2_upper_bound - initial_lower_bound[2]) / delta_eps[2])
 
@@ -92,7 +101,7 @@ def compute_pareto_set(m, Y, objectives, data, model,
             EPS2Con.RHS = eps2
             m.update()
             m.Params.OutputFlag = 0
-            solution = mini_opti(m, Y, data, model)
+            solution = mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model)
 
             if verbose:
                 print(f"SOLVE {r=}, {s=}, {eps1=:.2f}, {eps2=:.2f}, "
@@ -133,18 +142,18 @@ def compute_pareto_set(m, Y, objectives, data, model,
 
     return pareto_solutions, dominated_solutions, pareto_indices, dominated_indices
 
-def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
+def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, d, dense = True):
     # Initial optimisation: maximise each objective individually to get bounds
     [objective_0, objective_1, objective_2] = objectives
 
     m.setObjective(objective_0, gp.GRB.MAXIMIZE)
-    pat_sat_objs = mini_opti(m, Y, data, model)
+    pat_sat_objs = mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model)
 
     m.setObjective(objective_1, gp.GRB.MAXIMIZE)
-    total_appts_objs = mini_opti(m, Y, data, model)
+    total_appts_objs = mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model)
 
     m.setObjective(objective_2, gp.GRB.MAXIMIZE)
-    doc_sat_objs = mini_opti(m, Y, data, model)
+    doc_sat_objs = mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model)
 
     # Epsilon-constraint setup
     initial_upper_bound = [None, total_appts_objs[1], doc_sat_objs[2]]
@@ -160,11 +169,6 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
     EPS2Con = m.addConstr(objective_2 >= 0)
 
     # Generate or load Pareto results
-    model_names = {
-        FEASIBILITY: "feasibility",
-        COMPATIBLE_TIMES: "compatible_times",
-        DOCTOR_AVAILABLE: "doctor_available"
-    }
     path = "outputs/results"
     filename = (f"{path}/pareto_{model_names[model]}_seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
 
@@ -187,13 +191,13 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
 
         start_time = time.time()
         print("* Slack Pareto frontier")
-        pareto_slack, dom_slack, pareto_ind_slack, dom_ind_slack = compute_pareto_set(m, Y, objectives, data, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=True, verbose=True)
+        pareto_slack, dom_slack, pareto_ind_slack, dom_ind_slack = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=True, verbose=True)
         slack_time = time.time() - start_time
 
         if dense:
             print("* Dense Pareto frontier")
             start_time = time.time()
-            pareto_dense, dom_dense, pareto_ind_dense, dom_ind_dense = compute_pareto_set(m, Y, objectives, data, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=False, verbose=True)
+            pareto_dense, dom_dense, pareto_ind_dense, dom_ind_dense = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=False, verbose=True)
             dense_time = time.time() - start_time
 
         output = {
