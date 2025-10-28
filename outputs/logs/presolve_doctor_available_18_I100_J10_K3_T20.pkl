@@ -1,0 +1,82 @@
+
+Gurobi 12.0.1 (win64) logging started Tue Oct 28 16:17:16 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_18_I100_J10_K3_T20.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11.0 (26100.2))
+
+CPU model: 12th Gen Intel(R) Core(TM) i7-1255U, instruction set [SSE2|AVX|AVX2]
+Thread count: 10 physical cores, 12 logical processors, using up to 12 threads
+
+Optimize a model with 249 rows, 6618 columns and 19715 nonzeros
+Model fingerprint: 0xbd8bbe26
+Variable types: 0 continuous, 6618 integer (6618 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [3e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 20.0000000
+Presolve removed 25 rows and 102 columns
+Presolve time: 0.03s
+Presolved: 224 rows, 6516 columns, 19355 nonzeros
+Found heuristic solution: objective 21.6666667
+Variable types: 0 continuous, 6516 integer (6516 binary)
+
+Root relaxation: objective 5.500000e+01, 1117 iterations, 0.05 seconds (0.06 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0      55.0000000   55.00000  0.00%     -    0s
+
+Explored 1 nodes (2884 simplex iterations) in 0.12 seconds (0.11 work units)
+Thread count was 12 (of 12 available processors)
+
+Solution count 3: 55 21.6667 20 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 5.500000000000e+01, best bound 5.500000000000e+01, gap 0.0000%
+
+Gurobi 12.0.1 (win64) logging started Tue Oct 28 16:17:27 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_18_I100_J10_K3_T20.pkl"
+
+Gurobi 12.0.1 (win64) logging started Tue Oct 28 16:27:45 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_18_I100_J10_K3_T20.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11.0 (26100.2))
+
+CPU model: 12th Gen Intel(R) Core(TM) i7-1255U, instruction set [SSE2|AVX|AVX2]
+Thread count: 10 physical cores, 12 logical processors, using up to 12 threads
+
+Optimize a model with 249 rows, 6618 columns and 19715 nonzeros
+Model fingerprint: 0xbd8bbe26
+Variable types: 0 continuous, 6618 integer (6618 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [3e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 20.0000000
+Presolve removed 25 rows and 102 columns
+Presolve time: 0.04s
+Presolved: 224 rows, 6516 columns, 19355 nonzeros
+Found heuristic solution: objective 21.6666667
+Variable types: 0 continuous, 6516 integer (6516 binary)
+
+Root relaxation: objective 5.500000e+01, 1117 iterations, 0.05 seconds (0.06 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0      55.0000000   55.00000  0.00%     -    0s
+
+Explored 1 nodes (2884 simplex iterations) in 0.15 seconds (0.11 work units)
+Thread count was 12 (of 12 available processors)
+
+Solution count 3: 55 21.6667 20 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 5.500000000000e+01, best bound 5.500000000000e+01, gap 0.0000%
