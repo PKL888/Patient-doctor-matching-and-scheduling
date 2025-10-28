@@ -43,8 +43,8 @@ def mini_opti(m, Y, Z, W, S, F, I, J, K, T, data, d, model):
     elif model == SUBSET_COLUMN_GEN:
         obj_stats = find_huge_objectives(Vs, J, S) # only need J out of data
     else:
-        print("Model does not exist in Pareto options...")
-        return None
+        assert model == FRAGMENT_COLUMN_GEN
+        obj_stats = find_fragment_objectives(Vs, d, F)
 
     return obj_stats
 

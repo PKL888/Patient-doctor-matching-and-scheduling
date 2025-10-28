@@ -7,6 +7,7 @@ from compact.compatible_times import *
 from compact.doctor_available import *
 from compact.feasibility import *
 from huge.cg_huge import *
+from huge.cg_fragments_formulation import *
 
 plt.rcParams.update({
     "mathtext.fontset": "cm",
@@ -218,6 +219,7 @@ def get_values_for_model(Y, Z, W, S, F, model, data, d):
     elif model == FRAGMENT_COLUMN_GEN:
         # Wvals = {key: W[key].x for key in W}
         Ws = {(j, f): W[j][f].x for j in J for f in F[j]}
+        objectives = find_fragment_objectives(Ws, d, F)
         return Ws, objectives
 
 def print_stats(Y, Z, W, S, F, model, data, objectives):

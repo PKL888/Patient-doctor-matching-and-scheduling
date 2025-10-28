@@ -108,7 +108,7 @@ if __name__ == '__main__':
         if obj == PARETO:
             m.setParam("OutputFlag", 0)
             make_pareto_frontier(data, m, Y, Z, W, S, F, d.I, d.J, d.K, d.T, [objective_0, objective_1, objective_2], model, d, dense=False)
-        
+            
         else:
             set_objective(m, obj)
 
