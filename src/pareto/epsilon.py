@@ -160,7 +160,7 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
         min(pat_sat_objs[2], total_appts_objs[2])
     ]
 
-    delta_eps = [None, 1, 0.1]
+    delta_eps = [None, 1, 0.01]
 
     EPS1Con = m.addConstr(objective_1 >= 0)
     EPS2Con = m.addConstr(objective_2 >= 0)

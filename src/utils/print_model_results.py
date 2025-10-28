@@ -156,108 +156,27 @@ def summarize_results(all_results, model_name):
     print("\nEND OF MODEL SUMMARY")
     print("="*100 + "\n")
 
-def save_table(df, method_name="Pareto Epsilon Method", I=100, J=10, K=3, T=20, image_dir="outputs/images/"):
-    os.makedirs(image_dir, exist_ok=True)
+def summarize_pareto_slack_results(seeds, patients, doctors, diseases, time_periods):
+    path = "outputs/results"
+    runtimes = []
+    pareto_counts = []
 
-    # Wrap long text in the Metric column
-    df_plot = df.copy()
-    df_plot["Metric"] = df_plot["Metric"].apply(lambda x: "\n".join(textwrap.wrap(x, 15)))
-
-    fig, ax = plt.subplots(figsize=(8, 3))
-    ax.axis("off")
-
-    # Add title
-    title = f"{method_name} Results\nPatients (I)={I}, Doctors (J)={J}"
-    plt.title(title, fontsize=14, fontweight="bold")
-
-    # Create table
-    tbl = ax.table(cellText=df_plot.values,
-                   colLabels=df_plot.columns,
-                   loc='center',
-                   cellLoc='center')
-    
-    tbl.auto_set_font_size(False)
-    tbl.set_fontsize(10)
-    tbl.scale(1.5, 2.75)
-
-    # Save PNG
-    png_path = os.path.join(image_dir, f"pareto_summary_I{I}_J{J}_K{K}_T{T}.png")
-    plt.savefig(png_path, bbox_inches='tight', dpi=200)
-    plt.close()
-    print(f"[SAVED] Pretty PNG table: {png_path}")
-
-def summarize_pareto_slack_results(
-        seeds, I, J, K, T,
-        file_template="outputs/results/pareto_doctor_available_seed{seed}_I{I}_J{J}_K{K}_T{T}.pkl",
-        summary_dir="outputs/summary/",
-        image_dir="outputs/images/"
-    ):
-    """
-    Summarize Pareto slack results across multiple seeds.
-    Returns a DataFrame and saves a pretty PNG table automatically.
-    """
-
-    num_solutions_slack = []
-    num_dominated_slack = []
-    slack_times = []
-    total_runtimes = []  # <-- new list for total runtime
-
-    os.makedirs(summary_dir, exist_ok=True)
-    os.makedirs(image_dir, exist_ok=True)
-
-    # --- Load data for all seeds ---
     for seed in seeds:
-        filename = file_template.format(seed=seed, I=I, J=J, K=K, T=T)
-        if not os.path.exists(filename):
-            print(f"[WARNING] File {filename} not found, skipping.")
-            continue
+        filename = f"{path}/pareto_doctor_available_seed{seed}_I{patients}_J{doctors}_K{diseases}_T{time_periods}.pkl"
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                data = pickle.load(f)
+            runtimes.append(data.get("total_runtime", 0))
+            pareto_counts.append(len(data.get("pareto_slack", [])))
+        else:
+            print(f"[WARN] File not found for seed {seed}: {filename}")
 
-        with open(filename, "rb") as f:
-            data = pickle.load(f)
-
-        pareto_slack = data.get("pareto_slack") or []
-        dom_slack = data.get("dom_slack") or []
-        slack_time = data.get("slack_time")
-        total_runtime = data.get("total_runtime")  # <-- get total runtime
-
-        num_solutions_slack.append(len(pareto_slack))
-        num_dominated_slack.append(len(dom_slack))
-        slack_times.append(slack_time if slack_time is not None else np.nan)
-        total_runtimes.append(total_runtime if total_runtime is not None else np.nan)  # <-- append runtime
-
-    # --- Compute statistics ---
-    def stats(arr):
-        if len(arr) == 0:
-            return np.nan, np.nan, np.nan, np.nan
-        return np.mean(arr), np.std(arr), np.min(arr), np.max(arr)
-
-    mean_s, std_s, min_s, max_s = stats(np.array(num_solutions_slack, dtype=float))
-    mean_d, std_d, min_d, max_d = stats(np.array(num_dominated_slack, dtype=float))
-    mean_t, std_t, min_t, max_t = stats(np.array(slack_times, dtype=float))
-    mean_r, std_r, min_r, max_r = stats(np.array(total_runtimes, dtype=float))  # <-- compute stats
-
-    # Round values
-    round3 = lambda x: np.round(x, 3) if not np.isnan(x) else np.nan
-    mean_s, std_s, min_s, max_s = map(round3, [mean_s, std_s, min_s, max_s])
-    mean_d, std_d, min_d, max_d = map(round3, [mean_d, std_d, min_d, max_d])
-    mean_t, std_t, min_t, max_t = map(round3, [mean_t, std_t, min_t, max_t])
-    mean_r, std_r, min_r, max_r = map(round3, [mean_r, std_r, min_r, max_r])
-
-    # --- Build summary DataFrame ---
-    df = pd.DataFrame({
-        "Metric": [
-            "Pareto-optimal solutions",
-            "Dominated solutions",
-            "Slack computation time (s)",
-            "Total Pareto frontier runtime (s)"  # <-- updated label
-        ],
-        "Mean": [mean_s, mean_d, mean_t, mean_r],
-        "Std Dev": [std_s, std_d, std_t, std_r],
-        "Min": [min_s, min_d, min_t, min_r],
-        "Max": [max_s, max_d, max_t, max_r]
-    })
-
-    # --- Save pretty PNG table ---
-    save_table(df, method_name="Pareto Epsilon Method", I=I, J=J, K=K, T=T, image_dir=image_dir)
-
-    return df
+    summary = {
+        "Patients": patients,
+        "Doctors": doctors,
+        "Min Runtime": round(min(runtimes), 3),
+        "Max Runtime": round(max(runtimes), 3),
+        "Avg Runtime": round(np.mean(runtimes), 3),
+        "Avg Pareto Solutions": round(np.mean(pareto_counts))
+    }
+    return summary

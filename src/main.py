@@ -165,22 +165,68 @@ if __name__ == '__main__':
         
         plot_model_files(model_files, 2)
 
-    pareto_table = int(input("Do you want to print Epsilon Model table output fo 10 instances: 1: Yes, 2: No     "))
+    pareto_table = int(input("Do you want to save Epsilon Model table output for 10 instances on model size: 1: small, 2: medium, 3: large, 4: None     "))
     if (pareto_table == 1):
 
-        epsilon_problem_size = {
-            "patients": 50,
-            "doctors":  5,
-            "diseases": 3,
-            "time periods": 20
-        }
+        patient_sizes = [30, 40, 50]
 
+        doctor_sizes = [3, 5, 7]
+    elif (pareto_table == 2):
+        patient_sizes = [100, 110, 120]
+
+        doctor_sizes = [8, 10, 12]
+    elif (pareto_table == 3):
+        patient_sizes = [230, 240, 250]
+
+        doctor_sizes = [15, 18, 25]
+
+    if (pareto_table != 4):
         # Seeds 1 through 10
         seeds = range(1, 11)
-        
-        epsilon_runs(DOCTOR_AVAILABLE, epsilon_problem_size, seeds)
 
-        # Call function to summarize results
-        summarize_pareto_slack_results(seeds, epsilon_problem_size["patients"], epsilon_problem_size["doctors"],
-                                       epsilon_problem_size["diseases"], epsilon_problem_size["time periods"])
+        summary_rows = []
+
+        for i in patient_sizes:
+            for j in doctor_sizes:
+                epsilon_problem_size = {
+                    "patients": i,
+                    "doctors":  j,
+                    "diseases": 3,
+                    "time periods": 20
+                        }
         
+                epsilon_runs(DOCTOR_AVAILABLE, epsilon_problem_size, seeds)
+
+                summary = summarize_pareto_slack_results(seeds, i, j, 3, 20)
+                summary_rows.append(summary)
+        
+        
+        df_summary = pd.DataFrame(summary_rows)
+        df_summary = df_summary.set_index(["Patients", "Doctors"])
+        print(df_summary)
+        df_summary.to_csv("outputs/images/epsilon_summary.csv")
+
+        # === Save as PNG table ===
+        import matplotlib.pyplot as plt
+
+        df_plot = df_summary.reset_index()  # reset index so it looks good in the table
+
+        fig, ax = plt.subplots(figsize=(8, len(df_plot)*0.5 + 1))
+        ax.axis('tight')
+        ax.axis('off')
+
+        table = ax.table(
+            cellText=df_plot.values,
+            colLabels=df_plot.columns,
+            cellLoc='center',
+            loc='center'
+        )
+
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(df_plot.columns))))
+
+        plt.tight_layout()
+        plt.savefig("outputs/images/epsilon_summary.png", dpi=300)
+        plt.show()
+                
