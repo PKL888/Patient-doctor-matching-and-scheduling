@@ -16,12 +16,7 @@ from utils.logging_results import optimise_and_print_schedule
 # specify problem size, number of seeds --> generate data
 seeds = [18]
 
-problem_size = {
-    "patients": 10,
-    "doctors":  2,
-    "diseases": 1,
-    "time periods": 10
-}
+
 
 FEASIBILITY = 1
 COMPATIBLE_TIMES = 2
@@ -96,6 +91,13 @@ if __name__ == '__main__':
     model = user_model()
     obj = user_objective()
 
+    problem_size = {
+        "patients": 100,
+        "doctors":  10,
+        "diseases": 3,
+        "time periods": 20
+    }
+
     all_data = get_data(problem_size, seeds)
     for seed in seeds:
         data = all_data[f"seed_{seed}"]
@@ -120,7 +122,7 @@ if __name__ == '__main__':
 
             # (check whether a data or output file already exists)
             m.setParam("OutputFlag", 1)
-            optimise_and_print_schedule(model_type, model, m, Y, Z, W, S, F, data, d, show_plot=False)
+            optimise_and_print_schedule(model_type, model, m, Y, Z, W, S, F, data, d, show_plot=True)
 
 
 
