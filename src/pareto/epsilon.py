@@ -1,6 +1,7 @@
 import gurobipy as gp
 from math import ceil
 import os
+import time
 
 import sys
 from pathlib import Path
@@ -138,6 +139,7 @@ def compute_pareto_set(m, Y, objectives, data, model,
     return pareto_solutions, dominated_solutions, pareto_indices, dominated_indices
 
 def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
+    stime = time.time()
     # Initial optimisation: maximise each objective individually to get bounds
     [objective_0, objective_1, objective_2] = objectives
 
@@ -218,6 +220,9 @@ def make_pareto_frontier(data, m, Y, objectives, model, dense = True):
             }
             output.update(dense_output)
 
+        # Add total runtime to output
+        total_runtime = time.time() - stime
+        output["total_runtime"] = total_runtime
         with open(filename, "wb") as f:
             pickle.dump(output, f)
         print(f"[INFO] Saved pareto frontier to {filename}")

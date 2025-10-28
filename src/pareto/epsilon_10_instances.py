@@ -23,7 +23,6 @@ def epsilon_runs(model_type, problem_size, seeds, dense=True):
     If a seed file already exists, just read its runtime instead of recomputing.
     Returns a list of runtimes.
     """
-    run_times = []
 
     # Preload all data
     all_data = get_data(problem_size, seeds)
@@ -46,15 +45,11 @@ def epsilon_runs(model_type, problem_size, seeds, dense=True):
             # Load existing result
             with open(filename, "rb") as f:
                 data = pickle.load(f)
-            run_time = data.get("slack_time", 0)
-            if dense:
-                run_time += data.get("dense_time", 0)
+            run_time = data.get("total_runtime", 0)
             print(f"[INFO] Seed {seed} already computed, loaded runtime {run_time:.2f}s")
         else:
             print(f"\n=== Running seed {seed} ===")
             data = all_data[f"seed_{seed}"]
-
-            start_time = time.time()
 
             # Build model, variables, objectives
             m, Y, objectives, setup_time = make_doctor_available_model(data)
@@ -64,10 +59,5 @@ def epsilon_runs(model_type, problem_size, seeds, dense=True):
             # dense is false
             make_pareto_frontier(data, m, Y, objectives, model_type, dense=False)
 
-            run_time = time.time() - start_time
-            print(f"[INFO] Seed {seed} completed in {run_time:.2f}s")
-
-        run_times.append(run_time)
-
     print("[INFO] Finished computing Pareto frontiers for all seeds.")
-    return run_times
+

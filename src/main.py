@@ -169,8 +169,8 @@ if __name__ == '__main__':
     if (pareto_table == 1):
 
         epsilon_problem_size = {
-            "patients": 100,
-            "doctors":  10,
+            "patients": 50,
+            "doctors":  5,
             "diseases": 3,
             "time periods": 20
         }
@@ -178,26 +178,9 @@ if __name__ == '__main__':
         # Seeds 1 through 10
         seeds = range(1, 11)
         
-        run_times = epsilon_runs(DOCTOR_AVAILABLE, epsilon_problem_size, seeds)
+        epsilon_runs(DOCTOR_AVAILABLE, epsilon_problem_size, seeds)
 
         # Call function to summarize results
         summarize_pareto_slack_results(seeds, epsilon_problem_size["patients"], epsilon_problem_size["doctors"],
                                        epsilon_problem_size["diseases"], epsilon_problem_size["time periods"])
-
-        # Convert to numpy array for convenience
-        run_times = np.array(run_times, dtype=float)
-
-        # Compute statistics
-        mean_time = np.mean(run_times)
-        min_time = np.min(run_times)
-        max_time = np.max(run_times)
-        std_time = np.std(run_times)
-
-        # Print nicely
-        print(f"Run times (s): mean = {mean_time:.2f}, std = {std_time:.2f}, min = {min_time:.2f}, max = {max_time:.2f}")
-                
-       
-            
-
-
-
+        

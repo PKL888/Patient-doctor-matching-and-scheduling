@@ -42,3 +42,47 @@ Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J1
 Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:14:52 2025
 
 Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:31:59 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:36:39 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:39:26 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:42:54 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:44:51 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:46:02 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:46:24 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 16:49:22 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 17:01:16 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 17:02:31 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Tue Oct 28 17:03:00 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_1_I100_J10_K4_T20.pkl"
