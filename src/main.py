@@ -63,7 +63,7 @@ for seed in seeds:
         else:
             m, Y, [objective_0, objective_1, objective_2], _ = make_doctor_available_model(data)
 
-    # choose model(s) --> run model(s)
+    # choose objective --> maximise for objective
     if (obj not in ["1", "2", "3"]):
         break
     else:
