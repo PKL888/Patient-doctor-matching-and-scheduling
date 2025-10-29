@@ -8,7 +8,7 @@ M1 = 1e6
 def gen_best(K):
     return [random.choice([1,2,3]) for k in K]
 
-def gen_treat(J, K, best):
+def gen_treat(J, K, T, best):
     treatments = []
     for j in J:
         row = []
@@ -18,6 +18,8 @@ def gen_treat(J, K, best):
                 denom = random.normalvariate(0.75, 0.5)
             row.append(math.ceil(best[k] / denom))
         treatments.append(row)
+        if all([treat_time > len(T) for treat_time in treatments[j]] for k in K):
+            treatments[j][0] = len(T)
     return treatments
 
 def gen_qualified(T, treat):
@@ -113,7 +115,7 @@ def generate_data(problem_size, seeds):
 
         # Generate problem components
         best = gen_best(K)
-        treat = gen_treat(J, K, best)
+        treat = gen_treat(J, K, T, best)
         qualified = gen_qualified(T, treat)
         doctor_rank = gen_doctor_rank(qualified)
         doctor_available = gen_doctor_available(J, K, T, qualified, treat)

@@ -1,18 +1,32 @@
 import gurobipy as gp
 import time
+from utils.data_instance import DataInstance
 
-def find_feasibility_objectives(Y, data):
-    globals().update(data)
-    # Objective expressions
-    objective_0 = sum(Y[i,j,t] * (patientDoctorScore[i][j] + sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k])for k in K for i in I_k[k] for j in J for t in T)
-
-    objective_1 = sum(Y[i,j,t] for i in I for j in J for t in T)
+def find_feasibility_objectives(Y2: dict, d: DataInstance, data):
+    I = d.I
+    J = d.J
+    K = d.K
+    T = d.T
     
-    objective_2 = sum((doctor_disease_rank_scores[j][k]) * Y[i,j,t] for k in K for i in I_k[k] for j in J for t in T)
+    # Objective expressions
+    # print(f"{d.I_k[0]}, {J=}, {K=}, {T=}, ")
+    # for k in K:
+    #     for i in d.I_k[k]:
+    #         for j in J:
+    #             for t in T:
+    #                 print(f"{i=}, {j=}, {t=}, {k=}")
+    # print(f"{type(Y2)}   {Y2=}")
+    # print(Y2[0,0,0])
+
+    objective_0 = sum(Y2[i,j,t] * (d.patientDoctorScore[i][j] + sum(d.patientTimeScore[i][t:min(t + d.treat[j][k], len(T))]) / d.treat[j][k]) for k in K for i in d.I_k[k] for j in J for t in T)
+
+    objective_1 = sum(Y2[i,j,t] for i in I for j in J for t in T)
+    
+    objective_2 = sum((d.doctor_disease_rank_scores[j][k]) * Y2[i,j,t] for k in K for i in d.I_k[k] for j in J for t in T)
 
     return [objective_0, objective_1, objective_2]
 
-def make_feasibility_model(data):
+def make_feasibility_model(d, data):
     globals().update(data)
 
     # Initialise model
@@ -74,6 +88,6 @@ def make_feasibility_model(data):
     filename = (f"{path}/presolve_feasibility_{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.pkl")
     m.setParam("LogFile", filename)
 
-    objectives = find_feasibility_objectives(Y, data)
+    objectives = find_feasibility_objectives(Y, d, data)
     
     return m, Y, objectives, setup_time

@@ -28,14 +28,9 @@ from outputs.results import *
 from src.huge import *
 
 # specify problem size, number of seeds --> generate data
-seeds = [1]
+seeds = [19]
 
-problem_size = {
-    "patients": 100,
-    "doctors":  10,
-    "diseases": 4,
-    "time periods": 20
-}
+
 
 FEASIBILITY = 1
 COMPATIBLE_TIMES = 2
@@ -48,47 +43,43 @@ PAT_SAT = 2
 DOC_SAT = 3
 PARETO = 5
 
-
-
 def make_model(model:int, data: dict, d: DataInstance):
     Y = None
     Z = None
     S = None
     F = None
     W = None
-    if (model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]):
-        # for optimise and print
 
-        if (model == FEASIBILITY):
-            m, Y, [objective_0, objective_1, objective_2], time = make_feasibility_model(data)
-        elif (model == COMPATIBLE_TIMES):
+    if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
+        if model == FEASIBILITY:
+            m, Y, [objective_0, objective_1, objective_2], time = make_feasibility_model(d, data)
+        elif model == COMPATIBLE_TIMES:
             m, Y, [objective_0, objective_1, objective_2], time = make_compatible_times_model(data)
-        elif (model == DOCTOR_AVAILABLE):
+        elif model == DOCTOR_AVAILABLE:
             m, Y, [objective_0, objective_1, objective_2], time = make_doctor_available_model(data)
-        else:
-            # never gets here??
-            print(f"model {model} not valid")
+    
     elif model == SUBSET_COLUMN_GEN:
-        # actually meant to be the wrong way round, not a bug
-        m, Z, [objective_1, objective_0, objective_2], time, S = make_huge_model(d, d.seed, len(d.I), len(d.J), len(d.T), len(d.K))
-    else:
-        if model != model == FRAGMENT_COLUMN_GEN:
-            print("not a valid model????")
-
-        # actually meant to be the wrong way round, not a bug
+        m, Z, [objective_0, objective_1, objective_2], time, S = make_huge_model(d, d.seed, len(d.I), len(d.J), len(d.K), len(d.T))
+    
+    elif model == FRAGMENT_COLUMN_GEN:
         max_frag_length = int(input("Maximum fragment length (at least 2, 5 and up is very slow):    "))
         m, W, [objective_0, objective_1, objective_2], time, F = make_huge_frag_model(d, max_frag_length)
+    
+    else:
+        print("not a valid model????")
+    
     print(f"[INFO] Generating the model has taken {round(time, 4)} seconds")
+    
     return m, [objective_0, objective_1, objective_2], Y, Z, W, S, F
 
-def get_model():
-    model = int(input(f"Please enter Model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
+def user_model():
+    model = int(input(f"Please enter model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
     while model not in [FEASIBILITY,COMPATIBLE_TIMES,DOCTOR_AVAILABLE,SUBSET_COLUMN_GEN,FRAGMENT_COLUMN_GEN]:
         print(f"{model} is not a valid model.")
-        model = int(input(f"Please enter Model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
+        model = int(input(f"Please enter model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
     return model
 
-def get_objective():
+def user_objective():
     obj = int(input(f"Please enter objective: [{NUM_APPOINTMENTS}: number of appointments, {PAT_SAT}: patient satisfaction, {DOC_SAT}: doctor satisfaction, {PARETO}: pareto frontier]:    "))
     while obj not in [NUM_APPOINTMENTS,PAT_SAT,DOC_SAT,PARETO]:
         print(f"{obj} is not a valid objective.")
@@ -101,18 +92,16 @@ def set_objective(m: gp.Model, obj: int):
         return
     
     if (obj == NUM_APPOINTMENTS):
-        print("set objective num appointments", NUM_APPOINTMENTS)
+        print("set objective as num appointments", NUM_APPOINTMENTS)
         m.setObjective(objective_0, gp.GRB.MAXIMIZE)
     elif (obj == PAT_SAT):
-        print("set objective pat sat", PAT_SAT)
+        print("set objective as pat sat", PAT_SAT)
         m.setObjective(objective_1, gp.GRB.MAXIMIZE)
     elif (obj == DOC_SAT):
-        print("set objective doc_sat", DOC_SAT)
+        print("set objective as doc_sat", DOC_SAT)
         m.setObjective(objective_2, gp.GRB.MAXIMIZE)
-    else:
-        print("Not valid objective, should not have reached here")
 
-def make_epsilon_summary_table(pareto_table: int):
+def make_epsilon_summary_table(pareto_table: int, model):
 
     if (pareto_table == 1):
 
@@ -133,6 +122,9 @@ def make_epsilon_summary_table(pareto_table: int):
         seeds = range(1, 11)
 
         summary_rows = []
+        max_frag_length = 0    
+        if model_type == FRAGMENT_COLUMN_GEN and not max_frag_length:
+            max_frag_length = int(input("Maximum fragment length (at least 2, 5 and up is very slow):    "))
 
         for i in patient_sizes:
             for j in doctor_sizes:
@@ -143,7 +135,7 @@ def make_epsilon_summary_table(pareto_table: int):
                     "time periods": 20
                         }
         
-                epsilon_runs(DOCTOR_AVAILABLE, epsilon_problem_size, seeds)
+                epsilon_runs(model, epsilon_problem_size, seeds, frag_length=max_frag_length)
 
                 summary = summarize_pareto_slack_results(seeds, i, j, 3, 20)
                 summary_rows.append(summary)
@@ -179,24 +171,27 @@ def make_epsilon_summary_table(pareto_table: int):
         plt.show()
 
 if __name__ == '__main__':
-    model = get_model()
-    print("Model:", model)
-    obj = get_objective()
-   
+    model = user_model()
+    obj = user_objective()
+
+    problem_size = {
+        "patients": 50,
+        "doctors":  7,
+        "diseases": 4,
+        "time periods": 20
+    }
 
     all_data = get_data(problem_size, seeds)
     for seed in seeds:
         data = all_data[f"seed_{seed}"]
         d = DataInstance(data)
 
-        m, [objective_0, objective_1, objective_2], Y, Z, W, S, F \
-        = make_model(model, data, d)
+        m, [objective_0, objective_1, objective_2], Y, Z, W, S, F = make_model(model, data, d)
 
         if obj == PARETO:
             m.setParam("OutputFlag", 0)
-            make_pareto_frontier(data, m, Y, [objective_0, objective_1, objective_2], model, dense=False)
+            make_pareto_frontier(data, m, Y, Z, W, S, F, d.I, d.J, d.K, d.T, [objective_0, objective_1, objective_2], model, d, dense=False)
             
-        
         else:
             set_objective(m, obj)
 
@@ -210,7 +205,7 @@ if __name__ == '__main__':
 
             # (check whether a data or output file already exists)
             m.setParam("OutputFlag", 1)
-            optimise_and_print_schedule(model_type, seed, model, m, d.M1, Y, Z, S, d.I, d.J, d.K, d.T, d.I_k, d.treat, d.allocate_rank, d.qualified, d.doctor_rank, d.patient_available, d.patient_time_prefs, d.doctor_times, d.patient_diseases)
+            optimise_and_print_schedule(model_type, model, m, Y, Z, W, S, F, data, d, True)
         
         
     # plot basic models
@@ -232,6 +227,6 @@ if __name__ == '__main__':
         plot_model_files(model_files, 2)
 
     pareto_table = int(input("Do you want to save Epsilon Model table output for 10 instances on model size: 1: small, 2: medium, 3: large, 4: None     "))
-    make_epsilon_summary_table(pareto_table)
+    make_epsilon_summary_table(pareto_table, model)
     
                 

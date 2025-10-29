@@ -1,7 +1,13 @@
-import re
-import time
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import re
+import time
+
+from compact.compatible_times import *
+from compact.doctor_available import *
+from compact.feasibility import *
+from huge.cg_huge import *
+from huge.cg_fragments_formulation import *
 
 plt.rcParams.update({
     "mathtext.fontset": "cm",
@@ -15,21 +21,29 @@ DOCTOR_AVAILABLE = 3
 SUBSET_COLUMN_GEN = 8
 FRAGMENT_COLUMN_GEN = 9
 
+model_names = {
+    FEASIBILITY: "feasibility",
+    COMPATIBLE_TIMES: "compatible_times",
+    DOCTOR_AVAILABLE: "doctor_available",
+    SUBSET_COLUMN_GEN: "subset_column_gen",
+    FRAGMENT_COLUMN_GEN: "fragment_column_gen"
+}
+
 def left_pad_string(s, length):
     if len(s) >= length:
         return s
     return " " * (length - len(s)) + s 
 
-def create_schedule(model_type, Ys=None, Z=None, S=None, I=None, J=None, K=None, I_k=None, T=None, treat=None, patient_diseases=None):
+def create_schedule(model_type, d:DataInstance, Vs=None, Z=None, S=None):
     if (model_type == 0):
         schedule = []
-        for j in J:
-            doctor_schedule = [int(patient - 1) for patient in [sum((Ys[i,j,tt] * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]]
+        for j in d.J:
+            doctor_schedule = [int(patient - 1) for patient in [sum((Vs[i,j,tt] * (i + 1)) for k in d.K for i in d.I_k[k] for tt in d.T[max(0, t - d.treat[j][k] + 1):t+1]) for t in d.T]]
             schedule.append(doctor_schedule)
         return schedule
     elif (model_type == 1):
         schedule = []
-        for j in J:
+        for j in d.J:
             chosen_s = None
             for s in S[j]:
                 if Z[j, s].X > 0.5:
@@ -38,31 +52,20 @@ def create_schedule(model_type, Ys=None, Z=None, S=None, I=None, J=None, K=None,
             if chosen_s is None:
                 doctor_schedule = [-1 for _ in T]
             else:
-                _, Y_values = S[j][chosen_s]
-                doctor_schedule = expand_schedule(Y_values, j, T, treat, patient_diseases)
+                _, Vs = S[j][chosen_s]
+                doctor_schedule = expand_schedule(Vs, j, d)
             schedule.append(doctor_schedule)
         return schedule
 
-
-def print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs):
-    numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
-    doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
-    doctor_disease_rank_scores = [[qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - qualified[j][k]) * -M1 for k in K] for j in J]
-    print("\nStats: -----------------------------------")
-    print("Number of patients allocated:", round(sum(Ys[i,j,t] for i in I for j in J for t in T)))
-    print("Patient satisfaction with doctor and time:", round(sum(Ys[i,j,t] * ((numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]) for i in I for j in J for t in T)))
-    print("Doctor satisfaction with diseases:", round(sum((doctor_disease_rank_scores[j][k]) * Ys[i,j,t] for k in K for i in I_k[k] for j in J for t in T)))
-    print("\nSchedule: --------------------------------")
-
-def print_schedule(model_type, schedule, I, J, T, doctor_times):
+def print_schedule(model_type, d: DataInstance, schedule):
     if (model_type == 0):
-        padding = len(str(len(I)))
-        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
-        for j in J:
+        padding = len(str(len(d.I)))
+        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in d.T]))
+        for j in d.J:
             formatted_doctor_schedule = []
             for t, patient in enumerate(schedule[j]):
                 if patient is None or patient < 0:  # nobody scheduled
-                    if doctor_times[j][t]:  
+                    if d.doctor_times[j][t]:  
                         s_val = "-"   # available but not treating
                     else:
                         s_val = " "   # doctor unavailable
@@ -71,32 +74,35 @@ def print_schedule(model_type, schedule, I, J, T, doctor_times):
                 formatted_doctor_schedule.append(left_pad_string(s_val, padding))
             print("doctor:", j, " ".join(formatted_doctor_schedule))
     elif (model_type == 1):
-        padding = len(str(len(I)))
-        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
-        for j, doctor_schedule in zip(J, schedule):
+        padding = len(str(len(d.I)))
+        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in d.T]))
+        for j, doctor_schedule in zip(d.J, schedule):
             formatted = []
             for t, patient in enumerate(doctor_schedule):
                 if patient == -1:
                     s_val = "-"
                 else:
                     s_val = str(patient)
-                if not doctor_times[j][t]:
+                if not d.doctor_times[j][t]:
                     s_val = " "
                 formatted.append(left_pad_string(s_val, padding))
             print("doctor:", j, " ".join(formatted))
 
-def expand_schedule(Y_values, doctor, T, treat, patient_diseases):
+def expand_schedule(Vs, doctor, d):
     timeline = [-1 for _ in T]
-    for (i, d, t) in Y_values:
-        length = treat[doctor][patient_diseases[i]]
+    for (i, dd, t) in Vs:
+        length = d.treat[doctor][d.patient_diseases[i]]
         for tt in range(t, t + length):
             if tt < len(T):
                 timeline[tt] = i
     return timeline
 
-def plot_schedule(model, seed, schedule, I, J, K, T, doctor_times):
+def plot_schedule(schedule, model, show_plot, d: DataInstance):
     fig, ax = plt.subplots(figsize=(8, 2))
-
+    I = d.I
+    J = d.J
+    K = d.K
+    T = d.T
     cmap = plt.cm.gist_rainbow  # rainbow colormap
     n_patients = len(I)
 
@@ -110,11 +116,11 @@ def plot_schedule(model, seed, schedule, I, J, K, T, doctor_times):
         t = 0
         while t < len(T):
             patient = doctor_schedule[t]
-            if doctor_times[j][t]:
+            if d.doctor_times[j][t]:
                 # Start of a block
                 start = t
                 while (t < len(T) and doctor_schedule[t] == patient 
-                       and doctor_times[j][t]):
+                       and d.doctor_times[j][t]):
                     t += 1
                 end = t
 
@@ -162,94 +168,137 @@ def plot_schedule(model, seed, schedule, I, J, K, T, doctor_times):
     ax.set_ylim(-0.5, len(J) - 0.5)
 
     plt.tight_layout()
-
-    path = "outputs/images"
-    filename = (f"{path}/plot_{model.modelName}_Seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.png")
-    plt.savefig(filename, dpi=300)
-    plt.show()
-
-
-# function for taking from the log and checking against original number of vars and constraints
-def parse_presolve_log(m, logfile="outputs/logs/gurobi_presolve.log"):
-    presolve_info = {
-        "rows_removed": 0,
-        "columns_removed": 0,
-        "nonzeros_removed": 0
-    }
     
-    with open(logfile, "r") as f:
-        for line in f:
-            # match "Presolve removed X rows and Y columns"
-            match = re.search(r"Presolve removed (\d+) rows? and (\d+) columns?", line)
-            if match:
-                # calculate the variables and constraints from before presolve minus
-                # the rows and cols removed in presolve
-                presolve_info["num_variables"] = m.NumVars - int(match.group(2))
-                presolve_info["num_constraints"] = m.NumConstrs - int(match.group(1))
+    path = "outputs/images"
+    filename = (f"{path}/plot_{model_names[model]}_seed{d.seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.png")
+    plt.savefig(filename, dpi=300)
+    if show_plot: plt.show()
 
-    return presolve_info
+# def parse_presolve_log(m, logfile="outputs/logs/gurobi_presolve.log"):
+#     presolve_info = {
+#         "rows_removed": 0,
+#         "columns_removed": 0,
+#         "nonzeros_removed": 0
+#     }
+    
+#     with open(logfile, "r") as f:
+#         for line in f:
+#             # match "Presolve removed X rows and Y columns"
+#             match = re.search(r"Presolve removed (\d+) rows? and (\d+) columns?", line)
+#             if match:
+#                 # calculate the variables and constraints from before presolve minus
+#                 # the rows and cols removed in presolve
+#                 presolve_info["num_variables"] = m.NumVars - int(match.group(2))
+#                 presolve_info["num_constraints"] = m.NumConstrs - int(match.group(1))
 
+#     return presolve_info
 
-def optimise_and_print_schedule(model_type, seed, model, m, M1, Y, Z, S, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times, patient_diseases):
+def get_values_for_model(Y, Z, W, S, F, model, data, d):
+    I = d.I
+    J = d.J
+    T = d.T
+    if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
+        Yvals = {key: Y[key].x for key in Y}
+        Ys = {(i, j, t): Yvals.get((i, j, t), 0) for i in I for j in J for t in T}
+        
+        if model == FEASIBILITY:
+            objectives = find_feasibility_objectives(Ys, d, data)
+        elif model == COMPATIBLE_TIMES:
+            objectives = find_compatible_times_objectives(Ys, data)
+        else:
+            assert model == DOCTOR_AVAILABLE
+            objectives = find_doctor_available_objectives(Ys, data)
+        
+        return Ys, objectives
+    
+    elif model == SUBSET_COLUMN_GEN:
+        Zvals = {key: Z[key].x for key in Z}
+        Zs = {(j, s): Zvals.get((j, s), 0) for j in J for s in S[j]}
+        
+        objectives = find_huge_objectives(Zs, J, S)
+
+        return Zs, objectives
+    
+    else:
+        assert model == FRAGMENT_COLUMN_GEN
+        # Wvals = {key: W[key].x for key in W}
+        Ws = {(j, f): W[j][f].x for j in J for f in F[j]}
+        objectives = find_fragment_objectives(Ws, d, F)
+        return Ws, objectives
+
+def print_stats(Y, Z, W, S, F, model, data, objectives):
+    [objective_0, objective_1, objective_2] = objectives
+    print(objectives)
+
+    print("\nStats: -----------------------------------")
+    print("Objective 0 (patient satisfaction):  ", round(objective_0, 2))
+    print("Objective 1 (num of appointments):   ", round(objective_1))
+    print("Objective 2 (doctor satisfaction):   ", round(objective_2, 2))
+    print("\nSchedule: --------------------------------")
+
+def optimise_and_print_schedule(model_type, model, m, Y, Z, W, S, F, data, d, show_plot):
+    
     m.optimize()
-    Yvals = {key: Y[key].x for key in Y}
-    Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
-    schedule = create_schedule(model_type, Ys, Z, S, I, J, K, I_k, T, treat, patient_diseases)
-    print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
-    print_schedule(model_type, schedule, I, J, T, doctor_times)
-    plot_schedule(m, seed, schedule, I, J, K, T, doctor_times)
+    
+    Vs, objectives = get_values_for_model(Y, Z, W, S, F, model, data, d)
+    schedule = create_schedule(model_type, d, Vs, Z, S)
+    
+    print_stats(Y, Z, W, S, F, model, data, objectives)
+    print_schedule(model_type, d, schedule)
+    plot_schedule(schedule, model, show_plot, d)
 
-def optimise_and_collect(model_type, objective_name, m, Y, Z, S, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, patient_diseases):
-    start_obj_time = time.time()
-    m.optimize()
-    end_obj_time = time.time()
-    after_presolve_info = parse_presolve_log(m, "gurobi_presolve.log")
-    after_presolve_info["run_time_seconds"] = end_obj_time - start_obj_time
+# def optimise_and_collect(model_type, objective_name, m, Y, Z, S, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, patient_diseases):
+    # start_obj_time = time.time()
+    # m.optimize()
+    # end_obj_time = time.time()
+    
+    # after_presolve_info = parse_presolve_log(m, "gurobi_presolve.log")
+    # after_presolve_info["run_time_seconds"] = end_obj_time - start_obj_time
 
-    Yvals = {key: Y[key].x for key in Y}
-    Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
+    # Yvals = {key: Y[key].x for key in Y}
+    # Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
 
-    # Build schedule
-    schedule = create_schedule(model_type, Ys, Z, S, I, J, K, I_k, T, treat, patient_diseases)
+    # # Build schedule
+    # schedule = create_schedule(model_type, Ys, Z, S, I, J, K, I_k, T, treat, patient_diseases)
 
-    # Collect stats
-    numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
-    doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
-    doctor_disease_rank_scores = [
-        [
-            qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] 
-            + (1 - qualified[j][k]) * -M1 
-            for k in K
-        ] 
-        for j in J
-    ]
+    # # Collect stats
+    # numberAvailableDoctors = [sum(allocate_rank[i][jj] != M1 for jj in J) for i in I]
+    # doctor_num_diseases_can_treat = [sum(qualified[j]) for j in J]
+    # doctor_disease_rank_scores = [
+    #     [
+    #         qualified[j][k] * (doctor_num_diseases_can_treat[j] - doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] 
+    #         + (1 - qualified[j][k]) * -M1 
+    #         for k in K
+    #     ] 
+    #     for j in J
+    # ]
 
-    stats = {
-        "objective": objective_name,
-        "objective_value": m.objVal if m.SolCount > 0 else None,
-        "runtime": m.Runtime,
-        "mip_gap": m.MIPGap if m.IsMIP else None,
-        "nodes": m.NodeCount,
-        "iterations": m.IterCount,
-        "solutions_found": m.SolCount,
-        "num_patients_allocated": round(sum(Ys[i,j,t] for i in I for j in J for t in T)),
-        "patient_satisfaction": round(sum(
-            Ys[i,j,t] * (
-                (numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] 
-                + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]
-            ) 
-            for i in I for j in J for t in T)),
-        "doctor_satisfaction": round(sum(
-            (doctor_disease_rank_scores[j][k]) * Ys[i,j,t] 
-            for k in K for i in I_k[k] for j in J for t in T)),
-        "appointments_per_doctor": round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J),
-    }
+    # stats = {
+    #     "objective": objective_name,
+    #     "objective_value": m.objVal if m.SolCount > 0 else None,
+    #     "runtime": m.Runtime,
+    #     "mip_gap": m.MIPGap if m.IsMIP else None,
+    #     "nodes": m.NodeCount,
+    #     "iterations": m.IterCount,
+    #     "solutions_found": m.SolCount,
+    #     "num_patients_allocated": round(sum(Ys[i,j,t] for i in I for j in J for t in T)),
+    #     "patient_satisfaction": round(sum(
+    #         Ys[i,j,t] * (
+    #             (numberAvailableDoctors[i] - allocate_rank[i][j] + 1)/numberAvailableDoctors[i] 
+    #             + ((patient_available[i][1]) + 1 - patient_time_prefs[i][t])/patient_available[i][1]
+    #         ) 
+    #         for i in I for j in J for t in T)),
+    #     "doctor_satisfaction": round(sum(
+    #         (doctor_disease_rank_scores[j][k]) * Ys[i,j,t] 
+    #         for k in K for i in I_k[k] for j in J for t in T)),
+    #     "appointments_per_doctor": round(sum(Ys[i,j,t] for i in I for j in J for t in T))/len(J),
+    # }
 
-    # Convert schedule to pickle-friendly structure
-    schedule_dict = {f"doctor_{j}": schedule[j] for j in J}
+    # # Convert schedule to pickle-friendly structure
+    # schedule_dict = {f"doctor_{j}": schedule[j] for j in J}
 
-    return {
-        "stats": stats,
-        "schedule": schedule_dict,
-        "after_presolve_info": after_presolve_info
-    }
+    # return {
+    #     "stats": stats,
+    #     "schedule": schedule_dict,
+    #     "after_presolve_info": after_presolve_info
+    # }

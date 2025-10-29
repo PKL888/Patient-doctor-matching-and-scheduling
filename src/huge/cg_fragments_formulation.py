@@ -120,33 +120,31 @@ def make_huge_frag_model(d:DataInstance, max_frag_length):
 
     objs = [obj0, obj1, obj2]
     return m, W, objs, m_start - time.perf_counter(), F
-    # objectives = []
-    # for obj_index in range(0,3):
-    #     obj_lin_exp = objs[obj_index]
-    #     m.setObjective(obj_lin_exp, gp.GRB.MAXIMIZE)
 
-    #     m.setParam("OutputFlag", 1)
-    #     m.optimize()
 
-    #     objectives.append(round(m.ObjVal, 3))
+def find_fragment_objectives(Ws, d: DataInstance, F):
+    # print("\n\n-->", [f for f in F[0]])
+    # Objective expressions
+    # numberAvailableDoctors = [sum(d.allocate_rank[i][jj] != d.M1 for jj in d.J) for i in d.I]
+    # patientDoctorScore = [[(d.numberAvailableDoctors[i] - d.allocate_rank[i][j] + 1) / numberAvailableDoctors[i] for j in d.J] for i in d.I]
+    # patientTimeScore = [[(d.patient_available[i][1] + 1 - d.patient_time_prefs[i][t]) / d.patient_available[i][1] for t in d.T] for i in d.I]
+    fragment_patient_scores = {j: {f: 
+                                (sum(
+                                    d.patientDoctorScore[i][j] 
+                                    + 
+                                    sum(d.patientTimeScore[i][t:min(t + d.treat[j][d.patient_diseases[i]], len(d.T))]) / d.treat[j][d.patient_diseases[i]]
+                                for i,t in f[PATIENT_TIME_LIST])) for f in F[j]} for j in d.J}
+    obj0 = sum(Ws[j, f] * fragment_patient_scores[j][f] for j in d.J for f in F[j])
 
-    #     print("-" * 50)
-    #     print("Maximise objective", obj_index)
-    #     # schedule = create_schedule_from_Z(Z, S, J, T, treat, patient_diseases)
-    #     # print_schedule_from_Z(schedule, I, J, T, doctor_times)
 
-    # print("\n",objectives)
+    obj1 = sum(Ws[j,f] * len(f[PATIENT_LIST]) for j in d.J for f in F[j])
 
-    # def optimise_and_print_schedule_from_W_fragments(m, M1, W, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, doctor_times):
-    #     start_time = time.perf_counter()
-    #     m.optimize()
-    #     print("optimising time:", time.perf_counter() - start_time)
-        
-        
-    #     Yvals = {key: Y[key].x for key in Y}
-    #     Ys = {(i,j,t): Yvals.get((i,j,t), 0) for i in I for j in J for t in T}
 
-    #     schedule = create_schedule(Ys, K, J, I_k, T, treat)
-    #     print_stats(Ys, M1, I, J, K, T, I_k, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs)
-    #     print_schedule(schedule, I, J, T, doctor_times)
-    #     plot_schedule(schedule, I, J, T, doctor_times, path="plot.png")
+    # doctor_num_diseases_can_treat = [sum(d.qualified[j]) for j in d.J]
+    # doctor_disease_rank_scores = [[d.qualified[j][k] * (doctor_num_diseases_can_treat[j] - d.doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - d.qualified[j][k]) * -d.M1 for k in d.K] for j in d.J]
+    fragment_disease_scores = {j: {f: (sum(d.doctor_disease_rank_scores[j][d.patient_diseases[p]] for p in f[PATIENT_LIST])) for f in F[j]} for j in d.J}
+    obj2 = sum(Ws[j,f] * fragment_disease_scores[j][f] for j in d.J for f in F[j])
+
+    objs = [obj0, obj1, obj2]
+
+    return objs

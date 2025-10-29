@@ -82,7 +82,7 @@ def gen_fragments_for_doctor(d: DataInstance, doctor: int, max_frag_length: int)
     # ff in F[j] if (len(ff[PATIENT_LIST]) == max_frag_length and ff[NEXT_AVAILABLE_TIME] == f[START_TIME]))
     return allFragments, max_length_fragments_grouped_by_next_available_time, fragments_by_start_time
 
-def normal_generate_fragments(d: DataInstance, max_frag_length: int):
+def normal_generate_fragments(d: DataInstance, max_frag_length: int, save_output=True):
     F = dict()
     max_length_fragments_by_next_time = dict()
     fragments_by_start_time = dict()
@@ -102,7 +102,8 @@ def normal_generate_fragments(d: DataInstance, max_frag_length: int):
         "doctor_times": d.doctor_times,
     }
 
-    with open(f"data/cg_fragments_maxfraglength{max_frag_length}_seed{d.seed}_I{len(d.I)}_J{len(d.J)}_T{len(d.T)}_K{len(d.K)}.pkl", "wb") as f:
-        pickle.dump(data, f)
+    if save_output:
+        with open(f"data/cg_fragments_maxfraglength{max_frag_length}_seed{d.seed}_I{len(d.I)}_J{len(d.J)}_T{len(d.T)}_K{len(d.K)}.pkl", "wb") as f:
+            pickle.dump(data, f)
     
     return data
