@@ -112,60 +112,8 @@ def set_objective(m: gp.Model, obj: int):
     else:
         print("Not valid objective, should not have reached here")
 
-if __name__ == '__main__':
-    model = get_model()
-    print("Model:", model)
-    obj = get_objective()
-   
+def make_epsilon_summary_table(pareto_table: int):
 
-    all_data = get_data(problem_size, seeds)
-    for seed in seeds:
-        data = all_data[f"seed_{seed}"]
-        d = DataInstance(data)
-
-        m, [objective_0, objective_1, objective_2], Y, Z, W, S, F \
-        = make_model(model, data, d)
-
-        if obj == PARETO:
-            m.setParam("OutputFlag", 0)
-            make_pareto_frontier(data, m, Y, [objective_0, objective_1, objective_2], model, dense=False)
-            
-        
-        else:
-            set_objective(m, obj)
-
-            model_type = -1
-            if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
-                model_type = 0
-            if model == SUBSET_COLUMN_GEN:
-                model_type = 1
-            if model == FRAGMENT_COLUMN_GEN:
-                model_type = 2
-
-            # (check whether a data or output file already exists)
-            m.setParam("OutputFlag", 1)
-            optimise_and_print_schedule(model_type, seed, model, m, d.M1, Y, Z, S, d.I, d.J, d.K, d.T, d.I_k, d.treat, d.allocate_rank, d.qualified, d.doctor_rank, d.patient_available, d.patient_time_prefs, d.doctor_times, d.patient_diseases)
-        
-        
-    # plot basic models
-    plot = int(input("Do you want to print the compact model performance profiles or column generation: 1: Compact Models, 2: Column Generation, 3: None       "))
-    if (plot == 1):
-        model_files = {
-            "Feasibility": "outputs/results/F_all_1000_seeds_model_results.pkl",
-            "Compatible times": "outputs/results/CT_all_1000_seeds_model_results.pkl",
-            "Doctor available": "outputs/results/DA_all_1000_seeds_model_results.pkl",
-        }
-
-        plot_model_files(model_files, 1)
-    elif (plot == 2):
-        model_files = {
-            "Singular:": "src/huge/cg_schedules_timed_all_100_seeds_model_results.pkl",
-            "Multiproccessing: ": "src/huge/cg_schedules_timed_multiproccessing_all_100_seed_model_results.pkl"
-        }
-        
-        plot_model_files(model_files, 2)
-
-    pareto_table = int(input("Do you want to save Epsilon Model table output for 10 instances on model size: 1: small, 2: medium, 3: large, 4: None     "))
     if (pareto_table == 1):
 
         patient_sizes = [30, 40, 50]
@@ -229,4 +177,61 @@ if __name__ == '__main__':
         plt.tight_layout()
         plt.savefig("outputs/images/epsilon_summary.png", dpi=300)
         plt.show()
+
+if __name__ == '__main__':
+    model = get_model()
+    print("Model:", model)
+    obj = get_objective()
+   
+
+    all_data = get_data(problem_size, seeds)
+    for seed in seeds:
+        data = all_data[f"seed_{seed}"]
+        d = DataInstance(data)
+
+        m, [objective_0, objective_1, objective_2], Y, Z, W, S, F \
+        = make_model(model, data, d)
+
+        if obj == PARETO:
+            m.setParam("OutputFlag", 0)
+            make_pareto_frontier(data, m, Y, [objective_0, objective_1, objective_2], model, dense=False)
+            
+        
+        else:
+            set_objective(m, obj)
+
+            model_type = -1
+            if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
+                model_type = 0
+            if model == SUBSET_COLUMN_GEN:
+                model_type = 1
+            if model == FRAGMENT_COLUMN_GEN:
+                model_type = 2
+
+            # (check whether a data or output file already exists)
+            m.setParam("OutputFlag", 1)
+            optimise_and_print_schedule(model_type, seed, model, m, d.M1, Y, Z, S, d.I, d.J, d.K, d.T, d.I_k, d.treat, d.allocate_rank, d.qualified, d.doctor_rank, d.patient_available, d.patient_time_prefs, d.doctor_times, d.patient_diseases)
+        
+        
+    # plot basic models
+    plot = int(input("Do you want to print the compact model performance profiles or column generation: 1: Compact Models, 2: Column Generation, 3: None       "))
+    if (plot == 1):
+        model_files = {
+            "Feasibility": "outputs/results/F_all_1000_seeds_model_results.pkl",
+            "Compatible times": "outputs/results/CT_all_1000_seeds_model_results.pkl",
+            "Doctor available": "outputs/results/DA_all_1000_seeds_model_results.pkl",
+        }
+
+        plot_model_files(model_files, 1)
+    elif (plot == 2):
+        model_files = {
+            "Singular:": "src/huge/cg_schedules_timed_all_100_seeds_model_results.pkl",
+            "Multiproccessing: ": "src/huge/cg_schedules_timed_multiproccessing_all_100_seed_model_results.pkl"
+        }
+        
+        plot_model_files(model_files, 2)
+
+    pareto_table = int(input("Do you want to save Epsilon Model table output for 10 instances on model size: 1: small, 2: medium, 3: large, 4: None     "))
+    make_epsilon_summary_table(pareto_table)
+    
                 
