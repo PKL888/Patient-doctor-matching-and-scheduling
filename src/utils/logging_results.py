@@ -89,11 +89,11 @@ def print_schedule(model_type, d: DataInstance, schedule):
             print("doctor:", j, " ".join(formatted))
 
 def expand_schedule(Vs, doctor, d):
-    timeline = [-1 for _ in T]
+    timeline = [-1 for _ in d.T]
     for (i, dd, t) in Vs:
         length = d.treat[doctor][d.patient_diseases[i]]
         for tt in range(t, t + length):
-            if tt < len(T):
+            if tt < len(d.T):
                 timeline[tt] = i
     return timeline
 

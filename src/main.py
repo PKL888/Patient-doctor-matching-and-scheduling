@@ -175,10 +175,10 @@ if __name__ == '__main__':
     obj = user_objective()
 
     problem_size = {
-        "patients": 50,
-        "doctors":  7,
-        "diseases": 4,
-        "time periods": 20
+        "patients": 10,
+        "doctors":  2,
+        "diseases": 2,
+        "time periods": 10
     }
 
     all_data = get_data(problem_size, seeds)
@@ -233,6 +233,9 @@ if __name__ == '__main__':
 
     pareto_table = int(input("Do you want to save Epsilon Model table output for 10 instances on model size: 1: small, 2: medium, 3: large, 4: None     "))
     make_epsilon_summary_table(pareto_table,  model)
+    if pareto_table != 4:
+        plt.savefig("outputs/images/epsilon_summary.png", dpi=300)
+        plt.show()
     # for size in [1,2,3]:
     #     for model in [DOCTOR_AVAILABLE, FEASIBILITY, COMPATIBLE_TIMES]:
     #         make_epsilon_summary_table(size, model)
@@ -240,8 +243,7 @@ if __name__ == '__main__':
     
                 
 
-    plt.savefig("outputs/images/epsilon_summary.png", dpi=300)
-    plt.show()
+    
         
     # was used to run the epsilon model on 3 basic models over 100 instances
     # model_names = {

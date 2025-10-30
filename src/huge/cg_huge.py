@@ -9,7 +9,7 @@ from utils.data_instance import DataInstance
 
 def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
     multiprocessing_data_name = f"data/cg_subset_output_multiprocessing_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
-    normal_data_name = f"data/cg_smart_output_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
+    normal_data_name = f"data/cg_smart_output_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
 
     if os.path.exists(normal_data_name):
         print(f"Using schedules generated WITHOUT multiprocessing at {normal_data_name}")
