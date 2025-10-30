@@ -19,8 +19,7 @@ def gen_fragments_for_doctor(d: DataInstance, doctor: int, max_frag_length: int)
     fragments_length_n[0] =  []
     patients = d.patients_doctor_can_treat[doctor]
 
-    fragments_length_n[1] = [(start_time, (patient,), start_time + d.treat[doctor][d.patient_diseases[patient]], ((patient, start_time),)) 
-                             for patient in patients for start_time in d.compatible_times[patient, doctor]]
+    fragments_length_n[1] = [(start_time, (patient,), start_time + d.treat[doctor][d.patient_diseases[patient]], ((patient, start_time),)) for patient in patients for start_time in d.compatible_times[patient, doctor]]
     print(1, len(fragments_length_n[1]))
     max_length_fragments_grouped_by_next_available_time = {t: [] for t in T}
     fragments_by_start_time = {t: [] for t in T}

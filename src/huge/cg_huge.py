@@ -7,7 +7,7 @@ from huge.cg_schedules_timed import normal_generate_schedules
 from huge.cg_schedules_timed_multiprocessing import generate_schedules
 from utils.data_instance import DataInstance
 
-def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
+def get_schedule_data(model, data, d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
     multiprocessing_data_name = f"data/cg_subset_output_multiprocessing_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
     normal_data_name = f"data/cg_smart_output_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
 
@@ -23,11 +23,11 @@ def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
             data = pickle.load(f)
         return data
     
-    mulit_ans = input(f"Columns have not been generated for seed:{seed}, I:{i}, J:{j}, K:{k}, T:{t}. Do you wish to generate columns? (y/n):    ")
+    mulit_ans = input(f"Columns have not been generated for seed:{seed}, I:{i}, J:{j}, K:{k}, T:{t}. Do you wish to generate columns? (y/n):    ").lower()
     if not mulit_ans[0] == 'y':
         RuntimeError("Chose not to generate columns")
 
-    use_multi = input("Use multiprocessing to generate columns? (y/n):    ")[0] == 'y'
+    use_multi = input("Use multiprocessing to generate columns? (y/n):    ").lower() == 'y'
     print("Using multiprocessing: ", use_multi)
 
     base_data_name = f"data/data_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
@@ -41,17 +41,15 @@ def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
 
     # generate data
     if use_multi:
-        generate_schedules(d)
+        generate_schedules(model, data, d)
         with open(multiprocessing_data_name, "rb") as f:
             data = pickle.load(f)
         return data
     else:
-        normal_generate_schedules(d)
+        normal_schedules(d)
         with open(normal_data_name, "rb") as f:
             data = pickle.load(f)
         return data
-
-    RuntimeError()
 
 def find_huge_objectives(Z, J, S):
     # Objective expressions
@@ -62,8 +60,8 @@ def find_huge_objectives(Z, J, S):
 
     return objectives
 
-def make_huge_model(d:DataInstance, seed, i, j, k, t):
-    data = get_schedule_data(d, seed, i, j, k, t)
+def make_huge_model(huge_model, data, d:DataInstance, seed, i, j, k, t):
+    data = get_schedule_data(huge_model, data, d, seed, i, j, k, t)
     I = data["I"]
     J = data["J"]
     S = data["S"]

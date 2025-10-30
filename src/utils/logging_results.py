@@ -188,9 +188,9 @@ def plot_schedule(schedule, model, show_plot, d: DataInstance):
     plt.savefig(filename, dpi=300)
     if show_plot: plt.show()
 
-def get_values_for_model(Y, Z, W, S, F, model, data, d):
-    I = d.I
-    J = d.J
+def get_values_for_model(model, data, d, I=None, J=None, Y=None, Z=None, W=None, S=None, F=None):
+    I = I if I is not None else d.I
+    J = J if J is not None else d.J
     T = d.T
     if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
         Yvals = {key: Y[key].x for key in Y}
@@ -234,7 +234,7 @@ def print_stats(T, objectives):
 def optimise_and_print_schedule(model_type, model, m, Y, Z, W, S, F, data, d, show_plot):
     m.optimize()
     
-    Vs, objectives = get_values_for_model(Y, Z, W, S, F, model, data, d)
+    Vs, objectives = get_values_for_model(model, data, d, Y, Z, W, S, F)
     schedule = create_schedule(model_type, d, Vs, Z, W, S, F)
     
     print_stats(len(d.T), objectives)

@@ -33,7 +33,7 @@ PAT_SAT = 2
 DOC_SAT = 3
 PARETO = 5
 
-def make_model(model:int, data: dict, d: DataInstance):
+def make_model(huge_model:int, model:int, data: dict, d: DataInstance):
     Y = None
     Z = None
     S = None
@@ -49,7 +49,7 @@ def make_model(model:int, data: dict, d: DataInstance):
             m, Y, [objective_0, objective_1, objective_2], time = make_doctor_available_model(data)
     
     elif model == SUBSET_COLUMN_GEN:
-        m, Z, [objective_0, objective_1, objective_2], time, S = make_huge_model(d, d.seed, len(d.I), len(d.J), len(d.K), len(d.T))
+        m, Z, [objective_0, objective_1, objective_2], time, S = make_huge_model(huge_model, data, d, d.seed, len(d.I), len(d.J), len(d.K), len(d.T))
     
     elif model == FRAGMENT_COLUMN_GEN:
         max_frag_length = int(input("Maximum fragment length (at least 2, 5 and up is very slow):    "))
@@ -106,6 +106,7 @@ def user_problem():
     return seeds, problem_size
 
 def user_model():
+    huge_model = -1
     model = int(input(f"\nPlease choose model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
     while model not in [FEASIBILITY,COMPATIBLE_TIMES,DOCTOR_AVAILABLE,SUBSET_COLUMN_GEN,FRAGMENT_COLUMN_GEN]:
         print(f"{model} is not a valid model.")
@@ -114,9 +115,13 @@ def user_model():
         model_type = 0
     if model == SUBSET_COLUMN_GEN:
         model_type = 1
+        huge_model = int(input(f"\nPlease choose model for finding best schedules in column gen: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available:    "))
+        while model not in [FEASIBILITY,COMPATIBLE_TIMES,DOCTOR_AVAILABLE,SUBSET_COLUMN_GEN,FRAGMENT_COLUMN_GEN]:
+            print(f"{model} is not a valid model.")
+            huge_model = int(input(f"\nPlease choose model for finding best schedules in column gen: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available:    "))
     if model == FRAGMENT_COLUMN_GEN:
         model_type = 2
-    return model, model_type
+    return model, model_type, huge_model
 
 def user_objective():
     obj = int(input(f"Please choose objective: [{NUM_APPOINTMENTS}: number of appointments, {PAT_SAT}: patient satisfaction, {DOC_SAT}: doctor satisfaction, {PARETO}: pareto frontier]:    "))
@@ -189,8 +194,8 @@ def user_plot_frontier(seeds, all_data, model):
                 pareto = pickle.load(f)
 
             output_path = "outputs/graphs"
-            plot_pareto_2d(pareto[pareto_slack], pareto[dom_slack], save_path=output_path)
-            plot_pareto_3d(pareto[pareto_slack], save_path=output_path)
+            plot_pareto_2d(pareto["pareto_slack"], pareto["dom_slack"], save_path=output_path)
+            plot_pareto_3d(pareto["pareto_slack"], save_path=output_path)
 
 def make_epsilon_summary_table(pareto_table: int, model, model_type=-1):
     if (pareto_table == 1):

@@ -32,7 +32,7 @@ PARETO = 5
 
 if __name__ == '__main__':
     seeds, problem_size = user_problem()
-    model, model_type = user_model()
+    model, model_type, huge_model = user_model()
     obj = user_objective()
 
     all_data = get_data(problem_size, seeds)
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         data = all_data[f"seed_{seed}"]
         d = DataInstance(data)
 
-        m, [objective_0, objective_1, objective_2], Y, Z, W, S, F = make_model(model, data, d)
+        m, [objective_0, objective_1, objective_2], Y, Z, W, S, F = make_model(huge_model, model, data, d)
 
         if obj == PARETO:
             m.setParam("OutputFlag", 0)
@@ -59,25 +59,3 @@ if __name__ == '__main__':
         user_plot_frontier(seeds, all_data, model)
 
     print("\nModelling complete :)")
-    
-    # for size in [1,2,3]:
-    #     for model in [DOCTOR_AVAILABLE, FEASIBILITY, COMPATIBLE_TIMES]:
-    #         make_epsilon_summary_table(size, model)
- 
-    # was used to run the epsilon model on 3 basic models over 100 instances
-    # model_names = {
-    #     "1": FEASIBILITY,
-    #     "2": COMPATIBLE_TIMES,
-    #     "3": DOCTOR_AVAILABLE       
-    # }
-
-    # new_seeds = range(1, 101)
-    # new_problem_size = {
-    #     "patients": 50,
-    #     "doctors":  5,
-    #     "diseases": 4,
-    #     "time periods": 20
-    # }
-    # for model in model_names.values():
-    #     epsilon_runs(model, new_problem_size, new_seeds, dense=False)
-                

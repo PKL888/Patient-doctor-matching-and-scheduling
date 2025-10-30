@@ -131,6 +131,7 @@ def plot_model_files(model_files, files):
         fig, ax = plt.subplots(figsize=(8, 6))
 
         for model_name, model_results in all_models.items():
+            print(model_name)
             # collect total seed runtimes
             runtimes = [res["runtime_seconds"] for res in model_results.values()]
             runtimes = np.array(runtimes)
@@ -139,9 +140,9 @@ def plot_model_files(model_files, files):
             ax.plot(runtimes, y, label=model_name)
 
         ax.set_xscale("log")
-        ax.set_xlabel("Runtime")
+        ax.set_xlabel("Runtime (s)")
         ax.set_ylabel("Solved seeds (%)")
-        ax.set_title("Runtime comparison: Singular vs Multiprocessing")
+        ax.set_title("Column generation performance profiles")
         ax.legend(title="Mode", loc="lower right")
         plt.tight_layout()
         plt.savefig("outputs/graphs/graph_runtime_singular_vs_multiprocessing.png", bbox_inches="tight", dpi=300)
