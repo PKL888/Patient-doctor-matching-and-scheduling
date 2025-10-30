@@ -155,14 +155,22 @@ def summarize_results(all_results, model_name):
 
     print("\nEND OF MODEL SUMMARY")
     print("="*100 + "\n")
+from pareto.epsilon import FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE, FRAGMENT_COLUMN_GEN, SUBSET_COLUMN_GEN
 
-def summarize_pareto_slack_results(seeds, patients, doctors, diseases, time_periods):
+def summarize_pareto_slack_results(seeds, patients, doctors, diseases, time_periods, model):
     path = "outputs/results"
     runtimes = []
     pareto_counts = []
 
+    model_names = {
+        FEASIBILITY: "feasibility",
+        COMPATIBLE_TIMES: "compatible_times",
+        DOCTOR_AVAILABLE: "doctor_available",
+        SUBSET_COLUMN_GEN: "subset_column_gen",
+        FRAGMENT_COLUMN_GEN: "fragment_column_gen"        
+    }
     for seed in seeds:
-        filename = f"{path}/pareto_doctor_available_seed{seed}_I{patients}_J{doctors}_K{diseases}_T{time_periods}.pkl"
+        filename = f"{path}/pareto_{model_names[model]}_seed{seed}_I{patients}_J{doctors}_K{diseases}_T{time_periods}.pkl"
         if os.path.exists(filename):
             with open(filename, "rb") as f:
                 data = pickle.load(f)
