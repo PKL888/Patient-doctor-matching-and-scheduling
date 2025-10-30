@@ -1,7 +1,4 @@
 import gurobipy as gp
-# from data_gen import *
-# from schedule_printing import *
-# from logging_results import *
 import pickle
 import time
 from typing import Dict, FrozenSet, Tuple, Optional
@@ -217,9 +214,6 @@ def run_doctor_data(j: int, d: DataInstance):
 
     time_taken = time.perf_counter() - time_before
 
-    # 
-    #S[j] = result
-    #timings[j] = time_taken
 
     print(f"doctor: {j}, time: {time_taken:.2f} s")
 
@@ -246,21 +240,6 @@ def generate_schedules(d: DataInstance):
     for j, result, timing in results:
         S[j] = result
         timings[j] = timing
-
-    ### EXTRA CODE (NOT NEEDED)
-    # processes = []
-    # for j in J:
-    #     p = multiprocessing.Process(target=run_doctor_data, args=(j, S, timings))
-    #     p.start()
-    #     processes.append(p)
-
-    # count = 1
-    # for p in processes:
-    #     p.join()
-
-    # Optional: convert S to normal dict after joining
-    # S = dict(S)
-    # timings = dict(timings)
 
     end_general_timer = time.perf_counter()
     print(f"Total wall-clock time in parrallel:  {end_general_timer - start_general_timer:.6f} s")
@@ -317,20 +296,6 @@ if __name__ == "__main__":
         S[j] = result
         timings[j] = timing
 
-    ### EXTRA CODE (NOT NEEDED)
-    # processes = []
-    # for j in J:
-    #     p = multiprocessing.Process(target=run_doctor_data, args=(j, S, timings))
-    #     p.start()
-    #     processes.append(p)
-
-    # count = 1
-    # for p in processes:
-    #     p.join()
-
-    # Optional: convert S to normal dict after joining
-    # S = dict(S)
-    # timings = dict(timings)
 
     end_general_timer = time.perf_counter()
     print(f"Total wall-clock time in parrallel:  {end_general_timer - start_general_timer:.6f} s")

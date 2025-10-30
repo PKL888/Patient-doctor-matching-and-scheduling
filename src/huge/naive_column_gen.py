@@ -78,7 +78,7 @@ print("Genned doctor schedules")
 
 
 
-m = gp.Model("Doctor availability")
+# m = gp.Model("Doctor availability")
 
 """
 

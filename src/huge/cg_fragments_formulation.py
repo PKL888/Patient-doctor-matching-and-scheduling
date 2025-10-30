@@ -123,11 +123,7 @@ def make_huge_frag_model(d:DataInstance, max_frag_length):
 
 
 def find_fragment_objectives(Ws, d: DataInstance, F):
-    # print("\n\n-->", [f for f in F[0]])
-    # Objective expressions
-    # numberAvailableDoctors = [sum(d.allocate_rank[i][jj] != d.M1 for jj in d.J) for i in d.I]
-    # patientDoctorScore = [[(d.numberAvailableDoctors[i] - d.allocate_rank[i][j] + 1) / numberAvailableDoctors[i] for j in d.J] for i in d.I]
-    # patientTimeScore = [[(d.patient_available[i][1] + 1 - d.patient_time_prefs[i][t]) / d.patient_available[i][1] for t in d.T] for i in d.I]
+  
     fragment_patient_scores = {j: {f: 
                                 (sum(
                                     d.patientDoctorScore[i][j] 
@@ -139,9 +135,6 @@ def find_fragment_objectives(Ws, d: DataInstance, F):
 
     obj1 = sum(Ws[j,f] * len(f[PATIENT_LIST]) for j in d.J for f in F[j])
 
-
-    # doctor_num_diseases_can_treat = [sum(d.qualified[j]) for j in d.J]
-    # doctor_disease_rank_scores = [[d.qualified[j][k] * (doctor_num_diseases_can_treat[j] - d.doctor_rank[j][k] + 1)/doctor_num_diseases_can_treat[j] + (1 - d.qualified[j][k]) * -d.M1 for k in d.K] for j in d.J]
     fragment_disease_scores = {j: {f: (sum(d.doctor_disease_rank_scores[j][d.patient_diseases[p]] for p in f[PATIENT_LIST])) for f in F[j]} for j in d.J}
     obj2 = sum(Ws[j,f] * fragment_disease_scores[j][f] for j in d.J for f in F[j])
 
