@@ -1,0 +1,68 @@
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 14:14:33 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_compatible_times_19_I10_J2_K2_T10.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 30 rows, 39 columns and 209 nonzeros
+Model fingerprint: 0xfde30e9e
+Variable types: 0 continuous, 39 integer (39 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [5e-01, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 2.0000000
+Presolve removed 22 rows and 27 columns
+Presolve time: 0.00s
+Presolved: 8 rows, 12 columns, 24 nonzeros
+Variable types: 0 continuous, 12 integer (12 binary)
+
+Root relaxation: objective 2.500000e+00, 1 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0       2.5000000    2.50000  0.00%     -    0s
+
+Explored 1 nodes (1 simplex iterations) in 0.01 seconds (0.00 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 2: 2.5 2 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 2.500000000000e+00, best bound 2.500000000000e+00, gap 0.0000%
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 14:15:11 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_compatible_times_19_I10_J2_K2_T10.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 30 rows, 39 columns and 209 nonzeros
+Model fingerprint: 0x77fee77a
+Variable types: 0 continuous, 39 integer (39 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 2.0000000
+Presolve removed 30 rows and 39 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds (0.00 work units)
+Thread count was 1 (of 8 available processors)
+
+Solution count 2: 4 2 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.000000000000e+00, best bound 4.000000000000e+00, gap 0.0000%

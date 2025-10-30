@@ -1,0 +1,104 @@
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 14:05:50 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_feasibility_19_I10_J2_K2_T10.pkl"
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 14:09:25 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_feasibility_19_I10_J2_K2_T10.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 430 rows, 200 columns and 1380 nonzeros
+Model fingerprint: 0xc2e185b8
+Variable types: 0 continuous, 200 integer (200 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+01]
+  Objective range  [5e-01, 5e+05]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+01]
+Found heuristic solution: objective 5.7791667
+Presolve removed 422 rows and 190 columns
+Presolve time: 0.03s
+Presolved: 8 rows, 10 columns, 20 nonzeros
+Found heuristic solution: objective 3.1125000
+Variable types: 0 continuous, 10 integer (10 binary)
+Found heuristic solution: objective 5.8178571
+
+Root relaxation: objective 6.622024e+00, 3 iterations, 0.01 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+*    0     0               0       6.6220238    6.62202  0.00%     -    0s
+
+Explored 1 nodes (3 simplex iterations) in 0.10 seconds (0.00 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 4: 6.62202 5.81786 5.77917 3.1125 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 6.622023809524e+00, best bound 6.622023809524e+00, gap 0.0000%
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 14:14:17 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_feasibility_19_I10_J2_K2_T10.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 430 rows, 200 columns and 1380 nonzeros
+Model fingerprint: 0x7a19d266
+Variable types: 0 continuous, 200 integer (200 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+01]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+01]
+Found heuristic solution: objective 4.0000000
+Presolve removed 430 rows and 200 columns
+Presolve time: 0.02s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.03 seconds (0.00 work units)
+Thread count was 1 (of 8 available processors)
+
+Solution count 1: 4 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.000000000000e+00, best bound 4.000000000000e+00, gap 0.0000%
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 14:18:06 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_feasibility_19_I10_J2_K2_T10.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 430 rows, 200 columns and 1380 nonzeros
+Model fingerprint: 0x7a19d266
+Variable types: 0 continuous, 200 integer (200 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+01]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+01]
+Found heuristic solution: objective 4.0000000
+Presolve removed 430 rows and 200 columns
+Presolve time: 0.00s
+Presolve: All rows and columns removed
+
+Explored 0 nodes (0 simplex iterations) in 0.00 seconds (0.00 work units)
+Thread count was 1 (of 8 available processors)
+
+Solution count 1: 4 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 4.000000000000e+00, best bound 4.000000000000e+00, gap 0.0000%

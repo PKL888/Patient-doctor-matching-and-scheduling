@@ -41,7 +41,7 @@ def plot_pareto_2d(pareto, dom=None, labels=("Pareto", "Dominated"), save_path="
 
     plt.suptitle("Pareto frontier with dominated points" if dom else "Pareto frontier")
     if save_path: plt.savefig(f"{save_path}/2d_plot.png", bbox_inches='tight', dpi=300)
-    # plt.show()
+    plt.show()
 
 def plot_pareto_3d(pareto, save_path="outputs/graphs"):
     """Plot 3D Pareto frontier."""
@@ -59,4 +59,4 @@ def plot_pareto_3d(pareto, save_path="outputs/graphs"):
 
     plt.suptitle("Pareto frontier")
     if save_path: plt.savefig(f"{save_path}/3d_plot.png", bbox_inches='tight', dpi=300)
-    # plt.show()
+    plt.show()

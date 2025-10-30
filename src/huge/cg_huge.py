@@ -56,7 +56,6 @@ def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
     RuntimeError()
 
 def find_huge_objectives(Z, J, S):
-    print("\n\n-->", [s for s in S[0]])
     # Objective expressions
     objectives = [
         sum(S[j][s][0][obj] * Z[j, s] for j in J for s in S[j])
@@ -99,21 +98,3 @@ def make_huge_model(d:DataInstance, seed, i, j, k, t):
     objectives = find_huge_objectives(Z, J, S)
 
     return m, Z, objectives, start_time - time.perf_counter(), S
-
-
-
-    # objectives = []
-    # for obj in range(3):
-    #     m.setObjective(gp.quicksum(S[j][s][0][obj] * Z[j, s] for j in J for s in S[j]), gp.GRB.MAXIMIZE)
-
-    #     m.setParam("OutputFlag", 0)
-    #     m.optimize()
-
-    #     objectives.append(round(m.ObjVal, 2))
-
-    #     print("-" * 50)
-    #     print("Maximise objective", obj)
-    #     schedule = create_schedule_from_Z(Z, S, J, T, treat, patient_diseases)
-    #     print_schedule_from_Z(schedule, I, J, T, doctor_times)
-
-    # print("\n",objectives)

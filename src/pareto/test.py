@@ -23,6 +23,6 @@ missing = [x for x in pareto_dense if x not in pareto_slack]
 for i in missing:
     print(i)
 
-path = "outputs/graphs"
-plot_pareto_2d(pareto_slack, dom_slack, save_path=path)
-plot_pareto_3d(pareto_slack, save_path=path)
+output_path = "outputs/graphs"
+plot_pareto_2d(pareto[pareto_slack], pareto[dom_slack], save_path=output_path)
+plot_pareto_3d(pareto[pareto_slack], save_path=output_path)

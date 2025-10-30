@@ -1,14 +1,13 @@
-import pickle
 import numpy as np
-import sys
 import os
-import pandas as pd
-import matplotlib.pyplot as plt
-import textwrap
-
 from pathlib import Path
+import pickle
+import sys
+
 sys.path.append(str(Path(__file__).resolve().parents[2]))
+
 from outputs.results import *
+from pareto.epsilon import FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE, FRAGMENT_COLUMN_GEN, SUBSET_COLUMN_GEN
 from src.huge import *
 
 def summarize_results(all_results, model_name):
@@ -155,7 +154,6 @@ def summarize_results(all_results, model_name):
 
     print("\nEND OF MODEL SUMMARY")
     print("="*100 + "\n")
-from pareto.epsilon import FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE, FRAGMENT_COLUMN_GEN, SUBSET_COLUMN_GEN
 
 def summarize_pareto_slack_results(seeds, patients, doctors, diseases, time_periods, model):
     path = "outputs/results"

@@ -4,12 +4,12 @@ import numpy as np
 import os
 
 plt.rcParams.update({
-    "mathtext.fontset": "cm",   # Computer Modern for math
-    "font.family": "serif",     # Serif font for text
-    "font.size": 16             # Set default font size
+    "mathtext.fontset": "cm",
+    "font.family": "serif",
+    "font.size": 16
 })
 
-# --- Helper Function ---
+# --- Helper function ---
 def extract_runtimes(model_results):
     runtimes = [res["model_results"]["stats"]["runtime"] for res in model_results.values()]
     runtimes = np.array(runtimes)
@@ -17,8 +17,7 @@ def extract_runtimes(model_results):
     y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100  # percentage
     return runtimes, y
 
-
-# --- Plot Functions ---
+# --- Plot functions ---
 def plot_performance_profiles(all_models, objectives, model_styles):
     """Plots one subplot per objective, comparing models."""
     fig, axes = plt.subplots(1, len(objectives), figsize=(16, 5))
@@ -47,9 +46,7 @@ def plot_performance_profiles(all_models, objectives, model_styles):
     plt.savefig("outputs/graphs/graph_1000_seed_model_results.png", bbox_inches='tight', dpi=300)
     plt.show()
 
-
 def plot_model_performance_comparison(all_models, objectives, obj_styles):
-    """Plots one subplot per model, showing results for all objectives."""
     fig, axes = plt.subplots(1, len(all_models), figsize=(16, 5))
 
     for i, (model_name, model_results) in enumerate(all_models.items()):
@@ -98,9 +95,7 @@ def plot_pareto_runtime_performance(results, label="Pareto Runtime", outfile="gr
     plt.savefig(outfile, bbox_inches="tight", dpi=300)
     plt.show()
 
-
-
-# --- Main Plot Function ---
+# --- Main plot function ---
 def plot_model_files(model_files, files):
     """Loads models from pickle files and plots performance profiles."""
     all_models = {}
@@ -144,9 +139,9 @@ def plot_model_files(model_files, files):
             ax.plot(runtimes, y, label=model_name)
 
         ax.set_xscale("log")
-        ax.set_xlabel("Runtime (seconds, log scale)")
+        ax.set_xlabel("Runtime")
         ax.set_ylabel("Solved seeds (%)")
-        ax.set_title("Runtime Comparison: Singular vs Multiprocessing")
+        ax.set_title("Runtime comparison: Singular vs Multiprocessing")
         ax.legend(title="Mode", loc="lower right")
         plt.tight_layout()
         plt.savefig("outputs/graphs/graph_runtime_singular_vs_multiprocessing.png", bbox_inches="tight", dpi=300)

@@ -99,10 +99,6 @@ def gen_patient_time_prefs(I, T, patient_available):
     return ans
 
 def generate_data(problem_size, seeds):
-    """
-    Generate doctor-patient problem datasets for a given problem size and number of seeds.
-    Save to file.
-    """
     all_data = {}
 
     for seed in seeds:
@@ -213,19 +209,6 @@ def generate_data(problem_size, seeds):
     print(f"Saved all data to {filename}")
 
 def get_data(problem_size, seeds = [0]):
-    """
-    Loads or generates data.
-
-    Parameters
-    ----------
-
-    i, j, t, k : int
-        Problem parameters.
-
-    Returns
-    -------
-    data : as a dictionary 
-    """
     i = problem_size["patients"]
     j = problem_size["doctors"]
     k = problem_size["diseases"]
@@ -238,7 +221,6 @@ def get_data(problem_size, seeds = [0]):
     else:
         filename = f"{path}/all_data_{len(seeds)}seeds_I{i}_J{j}_K{k}_T{t}.pkl"
     
-    # Try to open existing output
     if not os.path.exists(filename):
         print(f"[INFO] Data file {filename} not found. Running datagen...")
         generate_data(problem_size, seeds)

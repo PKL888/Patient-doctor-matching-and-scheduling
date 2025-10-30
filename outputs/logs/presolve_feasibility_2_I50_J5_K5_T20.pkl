@@ -1,0 +1,52 @@
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 14:33:43 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_feasibility_2_I50_J5_K5_T20.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 10150 rows, 5000 columns and 40393 nonzeros
+Model fingerprint: 0xa136d3b1
+Variable types: 0 continuous, 5000 integer (5000 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 2e+01]
+  Objective range  [2e-01, 3e+05]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 2e+01]
+Found heuristic solution: objective 19.2242778
+Presolve removed 10010 rows and 3244 columns
+Presolve time: 0.07s
+Presolved: 140 rows, 1756 columns, 7677 nonzeros
+Found heuristic solution: objective 18.2631667
+Variable types: 0 continuous, 1756 integer (1756 binary)
+Found heuristic solution: objective 19.6409445
+
+Root relaxation: objective 5.834584e+01, 294 iterations, 0.01 seconds (0.01 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+     0     0   58.34584    0   85   19.64094   58.34584   197%     -    0s
+H    0     0                      43.4357150   58.34584  34.3%     -    0s
+H    0     0                      52.0852779   58.34584  12.0%     -    0s
+H    0     0                      54.6187537   58.34584  6.82%     -    0s
+H    0     0                      57.3473959   58.34584  1.74%     -    0s
+H    0     0                      57.6098959   58.34584  1.28%     -    0s
+H    0     0                      58.0418306   58.34584  0.52%     -    0s
+H    0     0                      58.2182826   58.31036  0.16%     -    0s
+     0     0   58.28965    0   60   58.21828   58.28965  0.12%     -    0s
+
+Cutting planes:
+  Clique: 8
+  Mod-K: 3
+
+Explored 1 nodes (309 simplex iterations) in 0.17 seconds (0.06 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 10: 58.2183 58.0418 57.6099 ... 18.2632
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 5.821828264328e+01, best bound 5.821828264328e+01, gap 0.0000%
