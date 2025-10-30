@@ -1,16 +1,10 @@
-import gurobipy as gp
-
 import pickle
-import time
-from typing import Dict, FrozenSet, Tuple, Optional
+
 from utils.data_instance import DataInstance
 
-
-MAX_NUM_APPOINTMENTS = 4
-
-NEXT_AVAILABLE_TIME = 2
-PATIENT_LIST = 1
 START_TIME = 0
+PATIENT_LIST = 1
+NEXT_AVAILABLE_TIME = 2
 PATIENT_TIME_LIST = 3
 
 def patient_can_be_added_to_fragment(this_compat_times, patient, doctor, fragment):
@@ -33,9 +27,6 @@ def gen_fragments_for_doctor(d: DataInstance, doctor: int, max_frag_length: int)
     for n in range(2, max_frag_length + 1):
         fragments_length_n[n] = []
         for fragment in fragments_length_n[n-1]:
-            # if fragment_full(doctor, fragment):
-                # if the fragment is full, stop
-                # continue
             for patient in patients:
                 if patient_can_be_added_to_fragment(d.compatible_times[patient, doctor], patient, doctor, fragment):
                     new_frag = (fragment[START_TIME], 

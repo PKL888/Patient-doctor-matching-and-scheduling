@@ -23,11 +23,11 @@ def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
             data = pickle.load(f)
         return data
     
-    mulit_ans = input(f"Columns have not been generated for seed:{seed} I:{i} J:{j} K:{k} T:{t}. Do you wish to generate columns? (y/n)")
+    mulit_ans = input(f"Columns have not been generated for seed:{seed}, I:{i}, J:{j}, K:{k}, T:{t}. Do you wish to generate columns? (y/n):    ")
     if not mulit_ans[0] == 'y':
         RuntimeError("Chose not to generate columns")
 
-    use_multi = input("Use multiprocessing to generate columns? (y/n)")[0] == 'y'
+    use_multi = input("Use multiprocessing to generate columns? (y/n):    ")[0] == 'y'
     print("Using multiprocessing: ", use_multi)
 
     base_data_name = f"data/data_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
@@ -38,8 +38,6 @@ def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
         base_data = pickle.load(f)[f"seed_{seed}"]
     print("-"*80)
     print(seed)
-    # print(base_data)
-    # globals().update(base_data)
 
     # generate data
     if use_multi:

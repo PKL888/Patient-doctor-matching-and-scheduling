@@ -32,7 +32,7 @@ PARETO = 5
 
 if __name__ == '__main__':
     seeds, problem_size = user_problem()
-    model = user_model()
+    model, model_type = user_model()
     obj = user_objective()
 
     all_data = get_data(problem_size, seeds)
@@ -48,13 +48,6 @@ if __name__ == '__main__':
             
         else:
             set_objective(m, obj, [objective_0, objective_1, objective_2])
-
-            if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
-                model_type = 0
-            if model == SUBSET_COLUMN_GEN:
-                model_type = 1
-            if model == FRAGMENT_COLUMN_GEN:
-                model_type = 2
 
             m.setParam("OutputFlag", 1)
             optimise_and_print_schedule(model_type, model, m, Y, Z, W, S, F, data, d, True)

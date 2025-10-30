@@ -1,19 +1,20 @@
 import gurobipy as gp
+import multiprocessing
 import pickle
 import time
-from typing import Dict, FrozenSet, Tuple, Optional
-import multiprocessing
+from typing import Dict, Tuple, Optional
+
 from utils.data_instance import DataInstance
 
 START = 0
 DURATION = 1
+
 # ----------------- Timing globals -----------------
 time_gen = 0.0
 time_mip = 0.0
 time_in_mip_solver = 0.0
 mip_calls = 0
 mip_feasible = 0
-
 
 def make_small_mip_model_doctor_availability(doctor:int, patients: set[int], d: DataInstance):
     m = gp.Model("Small MIP")

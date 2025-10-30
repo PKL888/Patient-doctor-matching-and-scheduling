@@ -110,7 +110,13 @@ def user_model():
     while model not in [FEASIBILITY,COMPATIBLE_TIMES,DOCTOR_AVAILABLE,SUBSET_COLUMN_GEN,FRAGMENT_COLUMN_GEN]:
         print(f"{model} is not a valid model.")
         model = int(input(f"Please choose model: [{FEASIBILITY}: feasibility, {COMPATIBLE_TIMES}: compatible_times, {DOCTOR_AVAILABLE}: doctor_available, {SUBSET_COLUMN_GEN}: schedule_column_gen, {FRAGMENT_COLUMN_GEN}: fragment_column_gen]:    "))
-    return model
+    if model in [FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE]:
+        model_type = 0
+    if model == SUBSET_COLUMN_GEN:
+        model_type = 1
+    if model == FRAGMENT_COLUMN_GEN:
+        model_type = 2
+    return model, model_type
 
 def user_objective():
     obj = int(input(f"Please choose objective: [{NUM_APPOINTMENTS}: number of appointments, {PAT_SAT}: patient satisfaction, {DOC_SAT}: doctor satisfaction, {PARETO}: pareto frontier]:    "))
@@ -137,7 +143,7 @@ def set_objective(m: gp.Model, obj: int, objectives):
         m.setObjective(objective_2, gp.GRB.MAXIMIZE)
 
 def user_plot_performance():
-    plot_performance = input("Would you like to plot the performance profiles for the compact models or column generation algorithms? (y/n):       ").lower()
+    plot_performance = input("\nWould you like to plot the performance profiles for the compact models or column generation algorithms? (y/n):       ").lower()
     if plot_performance == "y":
         plot = int(input("Which performance profiles would you like to plot?: 1: Compact models (single-objectives), 2: Column generation, 3: Compact IP (multi-objective), 4: None       "))
         
@@ -151,8 +157,8 @@ def user_plot_performance():
         
         elif (plot == 2):
             model_files = {
-                "Singular:": "src/huge/cg_schedules_timed_all_100_seeds_model_results.pkl",
-                "Multiproccessing: ": "src/huge/cg_schedules_timed_multiproccessing_all_100_seed_model_results.pkl"
+                "Singular:": "outputs/results/cg_schedules_timed_all_100_seeds_model_results.pkl",
+                "Multiproccessing: ": "outputs/results/cg_schedules_timed_multiproccessing_all_100_seed_model_results.pkl"
             }
             plot_model_files(model_files, 2)
         
@@ -206,7 +212,21 @@ def make_epsilon_summary_table(pareto_table: int, model, model_type=-1):
         summary_rows = []
         max_frag_length = 0    
         if model_type == FRAGMENT_COLUMN_GEN and not max_frag_length:
-            max_frag_length = int(input("Maximum fragment length (at least 2, 5 and up is very slow):    "))
+            while True:
+                max_frag_length = int(input("Choose the maximum fragment length (2, 3, or 4):    "))
+                if max_frag_length >= 5:
+                    confirm = input(
+                        f"A maximum fragment length of {max_frag_length} may be very slow. "
+                        "Would you like to continue? (y/n): "
+                    ).lower()
+                    if confirm == "y":
+                        break
+                    else:
+                        max_frag_length = None  # reset and ask again
+                elif max_frag_length in (2, 3, 4):
+                    break
+                else:
+                    print("Please choose a valid fragment length.")
 
         for i in patient_sizes:
             for j in doctor_sizes:
