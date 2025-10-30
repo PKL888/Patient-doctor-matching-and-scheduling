@@ -1,17 +1,15 @@
 import gurobipy as gp
-# from utils.data_gen import *
-# from utils.schedule_printing import *
-# from utils.logging_results import *
-import pickle
-from huge.cg_schedules_timed_multiprocessing import generate_schedules
-from huge.cg_schedules_timed import normal_generate_schedules
 import os
+import pickle
 import time
+
+from huge.cg_schedules_timed import normal_generate_schedules
+from huge.cg_schedules_timed_multiprocessing import generate_schedules
 from utils.data_instance import DataInstance
 
-def get_schedule_data(d:DataInstance, seed, i,j,t,k) -> dict[str, any]:
-    multiprocessing_data_name = f"data/cg_subset_output_multiprocessing_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
-    normal_data_name = f"data/cg_smart_output_seed{seed}_I{i}_J{j}_T{t}_K{k}.pkl"
+def get_schedule_data(d:DataInstance, seed, i, j, k, t) -> dict[str, any]:
+    multiprocessing_data_name = f"data/cg_subset_output_multiprocessing_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
+    normal_data_name = f"data/cg_smart_output_seed{seed}_I{i}_J{j}_K{k}_T{t}.pkl"
 
     if os.path.exists(normal_data_name):
         print(f"Using schedules generated WITHOUT multiprocessing at {normal_data_name}")
@@ -25,10 +23,9 @@ def get_schedule_data(d:DataInstance, seed, i,j,t,k) -> dict[str, any]:
             data = pickle.load(f)
         return data
     
-    mulit_ans = input(f"Columns have not been generated for seed:{seed} I:{i} J:{j} T:{t} K:{k}. Do you wish to generate columns? (y/n)")
+    mulit_ans = input(f"Columns have not been generated for seed:{seed} I:{i} J:{j} K:{k} T:{t}. Do you wish to generate columns? (y/n)")
     if not mulit_ans[0] == 'y':
         RuntimeError("Chose not to generate columns")
-
 
     use_multi = input("Use multiprocessing to generate columns? (y/n)")[0] == 'y'
     print("Using multiprocessing: ", use_multi)
@@ -56,17 +53,23 @@ def get_schedule_data(d:DataInstance, seed, i,j,t,k) -> dict[str, any]:
             data = pickle.load(f)
         return data
 
-    
     RuntimeError()
-    
-    
 
+def find_huge_objectives(Z, J, S):
+    print("\n\n-->", [s for s in S[0]])
+    # Objective expressions
+    objectives = [
+        sum(S[j][s][0][obj] * Z[j, s] for j in J for s in S[j])
+        for obj in range(3)
+    ]
 
-def make_huge_model(d:DataInstance, seed, i,j,t,k):
-    data = get_schedule_data(d, seed, i ,j ,t, k)
+    return objectives
+
+def make_huge_model(d:DataInstance, seed, i, j, k, t):
+    data = get_schedule_data(d, seed, i, j, k, t)
+    I = data["I"]
     J = data["J"]
     S = data["S"]
-    I = data["I"]
 
     # Initialise model
     m = gp.Model("Huge formulation")
@@ -93,10 +96,7 @@ def make_huge_model(d:DataInstance, seed, i,j,t,k):
         for j in J
     }
 
-    objectives = []
-    for obj in range(3):
-        obj_expression = gp.quicksum(S[j][s][0][obj] * Z[j, s] for j in J for s in S[j])
-        objectives.append(obj_expression)
+    objectives = find_huge_objectives(Z, J, S)
 
     return m, Z, objectives, start_time - time.perf_counter(), S
 

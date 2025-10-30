@@ -150,6 +150,7 @@ def find_best_schedule(doctor: int, patients: set[int], d: DataInstance) -> Tupl
     )
 
     Y_values = {(i, doctor, t): Y[i, doctor, t].x for (i, doctor, t) in Y if Y[i, doctor, t].x >= 0.9}
+
     return True, Y_values, (obj0_value, obj1_value, obj2_value)
 
 # ==================================================
@@ -282,7 +283,7 @@ def generate_schedules(d: DataInstance):
         "doctor_times": d.doctor_times
     }
 
-    with open(f"data/cg_subset_output_multiprocessing_seed{d.seed}_I{len(d.I)}_J{len(d.J)}_T{len(d.T)}_K{len(d.K)}.pkl", "wb") as f:
+    with open(f"data/cg_subset_output_multiprocessing_seed{d.seed}_I{len(d.I)}_J{len(d.J)}_K{len(d.K)}_T{len(d.T)}.pkl", "wb") as f:
         pickle.dump(data, f)
     return S
 

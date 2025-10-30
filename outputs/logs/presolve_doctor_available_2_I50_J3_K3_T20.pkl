@@ -2,3 +2,7 @@
 Gurobi 12.0.3 (win64) logging started Wed Oct 29 09:47:44 2025
 
 Set parameter LogFile to value "outputs/logs/presolve_doctor_available_2_I50_J3_K3_T20.pkl"
+
+Gurobi 12.0.1 (win64) logging started Wed Oct 29 18:25:31 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_2_I50_J3_K3_T20.pkl"

@@ -1,0 +1,8 @@
+
+Gurobi 12.0.1 (win64) logging started Wed Oct 29 07:53:34 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_feasibility_19_I10_J4_K2_T10.pkl"
+
+Gurobi 12.0.1 (win64) logging started Wed Oct 29 18:43:29 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_feasibility_19_I10_J4_K2_T10.pkl"
