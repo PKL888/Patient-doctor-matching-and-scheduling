@@ -2,3 +2,51 @@
 Gurobi 12.0.1 (win64) logging started Mon Oct 27 16:20:54 2025
 
 Set parameter LogFile to value "outputs/logs/presolve_compatible_times_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 10:40:43 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_compatible_times_1_I100_J10_K4_T20.pkl"
+Set parameter OutputFlag to value 1
+Gurobi Optimizer version 12.0.1 build v12.0.1rc0 (win64 - Windows 11+.0 (26200.2))
+
+CPU model: 11th Gen Intel(R) Core(TM) i7-1185G7 @ 3.00GHz, instruction set [SSE2|AVX|AVX2|AVX512]
+Thread count: 4 physical cores, 8 logical processors, using up to 8 threads
+
+Optimize a model with 300 rows, 6555 columns and 26185 nonzeros
+Model fingerprint: 0x647f5110
+Variable types: 0 continuous, 6555 integer (6555 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [1e+00, 1e+00]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 1e+00]
+Found heuristic solution: objective 46.0000000
+Presolve removed 78 rows and 933 columns
+Presolve time: 0.11s
+Presolved: 222 rows, 5622 columns, 21059 nonzeros
+Found heuristic solution: objective 42.0000000
+Variable types: 0 continuous, 5622 integer (5622 binary)
+
+Root relaxation: objective 6.600000e+01, 555 iterations, 0.03 seconds (0.03 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+H    0     0                      66.0000000   66.00000  0.00%     -    0s
+     0     0   66.00000    0   47   66.00000   66.00000  0.00%     -    0s
+
+Explored 1 nodes (555 simplex iterations) in 0.17 seconds (0.08 work units)
+Thread count was 8 (of 8 available processors)
+
+Solution count 3: 66 46 42 
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective 6.600000000000e+01, best bound 6.600000000000e+01, gap 0.0000%
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 10:41:15 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_compatible_times_1_I100_J10_K4_T20.pkl"
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 10:43:10 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_compatible_times_1_I100_J10_K4_T20.pkl"
