@@ -330,3 +330,35 @@ Solution count 10: 60.0209 59.7656 59.7239 ... 46.1672
 
 Optimal solution found (tolerance 1.00e-04)
 Best objective 6.002085525414e+01, best bound 6.002618106867e+01, gap 0.0089%
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 10:55:59 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 10:58:07 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 11:00:08 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 11:02:28 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 11:07:14 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 12:17:19 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 12:18:18 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
+
+Gurobi 12.0.3 (win64) logging started Thu Oct 30 12:19:43 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_19_I50_J7_K4_T20.pkl"
