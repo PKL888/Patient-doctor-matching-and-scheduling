@@ -96,7 +96,7 @@ def epsilon_runs(model_type, problem_size, seeds, dense=True, frag_length = 0):
             run_time = data.get("total_runtime", 0)
             print(f"[INFO] Seed {seed} already computed, loaded runtime {run_time:.2f}s")
         else:
-            print(f"\n=== Running seed {seed} ===")
+            print(f"\n=== Running seed {seed}, {i=}, {j=}, {k=}, {t=} ===")
             data = all_data[f"seed_{seed}"]
             d = DataInstance(data)
 
