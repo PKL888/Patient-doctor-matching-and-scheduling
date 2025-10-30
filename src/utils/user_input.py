@@ -189,8 +189,8 @@ def user_plot_frontier(seeds, all_data, model):
                 pareto = pickle.load(f)
 
             output_path = "outputs/graphs"
-            plot_pareto_2d(pareto[pareto_slack], pareto[dom_slack], save_path=output_path)
-            plot_pareto_3d(pareto[pareto_slack], save_path=output_path)
+            plot_pareto_2d(pareto["pareto_slack"], pareto["dom_slack"], save_path=output_path)
+            plot_pareto_3d(pareto["pareto_slack"], save_path=output_path)
 
 def make_epsilon_summary_table(pareto_table: int, model, model_type=-1):
     if (pareto_table == 1):
