@@ -1,0 +1,4 @@
+
+Gurobi 12.0.1 (win64) logging started Thu Oct 30 02:56:55 2025
+
+Set parameter LogFile to value "outputs/logs/presolve_doctor_available_10_I230_J15_K3_T20.pkl"
