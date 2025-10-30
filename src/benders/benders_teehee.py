@@ -1,14 +1,27 @@
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
 import gurobipy as gp
-from data_gen import *
-from schedule_printing import *
-from logging_results import *
+from src.utils.data_gen import *
+# from src.utils.print_model_results import *
+# from src.utils.logging_results import *
 import random
 import pickle
 import json
 import time
+# NOT INCLUDED IN REPORT
+# with open("data/data_seed10_I100_J10_K4_T20.pkl", "rb") as f:
+#     data = pickle.load(f)
+problem_size = {
+        "patients": 100,
+        "doctors":  10,
+        "diseases": 4,
+        "time periods": 20
+    }
+all_data = get_data(problem_size, seeds = [0])
+data = all_data[f"seed_{0}"]
 
-with open("data_seed10_I100_J10_K4_T20.pkl", "rb") as f:
-    data = pickle.load(f)
 
 # put everything in the global namespace
 globals().update(data)
@@ -80,31 +93,6 @@ def make_small_mip_model_compatible_times(doctor:int, patients: frozenset[int]):
     # WANT MINIMAL SET WHERE IT CANNOT BE SCHEDULED - CAN ONLY PICK EACH PATIENT ONCE.
     # MUST FAIL?
     m.setObjective(gp.quicksum(Y[i,j,t] for (i,j,t) in Y))
-
-    # -------------------- Objectives ----------------------------
-    # numberAvailableDoctors = {
-    #     i: sum(allocate_rank[i][jj] != M1 for jj in J)
-    #     for i in patients
-    # }
-    # patientDoctorScore = {
-    #     i: ((numberAvailableDoctors[i] - allocate_rank[i][doctor] + 1) / numberAvailableDoctors[i]
-    #         if allocate_rank[i][doctor] != M1 else 0)
-    #     for i in patients
-    # }
-    # patientTimeScore = {
-    #     i: [(patient_available[i][1] + 1 - patient_time_prefs[i][t]) / patient_available[i][1] for t in T]
-    #     for i in patients
-    # }
-
-    # objective_0 = gp.quicksum(
-    #     Y[i,doctor,t] * (
-    #         patientDoctorScore[i]
-    #         + sum(patientTimeScore[i][tt] for tt in range(t, min(t + treat[doctor][patient_diseases[i]], len(T))))
-    #         / treat[doctor][patient_diseases[i]]
-    #     )
-    #     for i in patients for t in compatible_times[i,doctor]
-    # )
-    # m.setObjective(objective_0, gp.GRB.MAXIMIZE)
 
     return m, Y
 
