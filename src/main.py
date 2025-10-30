@@ -144,7 +144,7 @@ def make_epsilon_summary_table(pareto_table: int, model):
         df_summary = pd.DataFrame(summary_rows)
         df_summary = df_summary.set_index(["Patients", "Doctors"])
         print(df_summary)
-        df_summary.to_csv("outputs/images/epsilon_summary.csv")
+        df_summary.to_csv(f"outputs/images/epsilon_summary{pareto_table=},{model=}.csv")
 
         # === Save as PNG table ===
         import matplotlib.pyplot as plt
