@@ -1,6 +1,7 @@
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 plt.rcParams.update({
     "mathtext.fontset": "cm",   # Computer Modern for math
@@ -43,7 +44,7 @@ def plot_performance_profiles(all_models, objectives, model_styles):
 
     axes[-2].legend(title="Model:", loc="lower right", frameon=False)
     plt.tight_layout()
-    plt.savefig("graph_1000_seed_model_results.png", bbox_inches='tight', dpi=300)
+    plt.savefig("outputs/graphs/graph_1000_seed_model_results.png", bbox_inches='tight', dpi=300)
     plt.show()
 
 
@@ -72,7 +73,7 @@ def plot_model_performance_comparison(all_models, objectives, obj_styles):
 
     axes[-1].legend(title="Objective", loc="lower right")
     plt.tight_layout()
-    plt.savefig("graph_1000_seed_model_results_by_model.png", bbox_inches='tight', dpi=300)
+    plt.savefig("outputs/graphs/graph_1000_seed_model_results_by_model.png", bbox_inches='tight', dpi=300)
     plt.show()
 
 def plot_pareto_runtime_performance(results, label="Pareto Runtime", outfile="graph_pareto_runtime.png"):
@@ -148,12 +149,12 @@ def plot_model_files(model_files, files):
         ax.set_title("Runtime Comparison: Singular vs Multiprocessing")
         ax.legend(title="Mode", loc="lower right")
         plt.tight_layout()
-        plt.savefig("graph_runtime_singular_vs_multiprocessing.png", bbox_inches="tight", dpi=300)
+        plt.savefig("outputs/graphs/graph_runtime_singular_vs_multiprocessing.png", bbox_inches="tight", dpi=300)
         plt.show()
 
     elif (files == 3):
-        seeds = range(1, 1001)
-        patients, doctors, diseases, time_periods = 200, 20, 4, 20
+        seeds = range(1, 101)
+        patients, doctors, diseases, time_periods = 50, 5, 4, 20
 
         model_styles = {
             "feasibility": {"color": "blue", "linestyle": "-"},
@@ -161,6 +162,7 @@ def plot_model_files(model_files, files):
             "doctor_available": {"color": "red", "linestyle": "-"},
         }
 
+        # Collect runtimes for all models
         pareto_runtimes = {model: [] for model in model_styles.keys()}
 
         for seed in seeds:
@@ -173,13 +175,28 @@ def plot_model_files(model_files, files):
                 else:
                     print(f"[WARN] Missing: {filename}")
 
+        # --- Plot all models on the same figure ---
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
         for model_name, runtimes in pareto_runtimes.items():
             if runtimes:
-                print(f"Plotting Pareto runtimes for: {model_name} ({len(runtimes)} instances)")
-                plot_pareto_runtime_performance(runtimes, label=model_name, outfile=f"graph_pareto_runtime_{model_name}.png")
+                runtimes = np.array(runtimes)
+                runtimes.sort()
+                y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100
+                ax.plot(runtimes, y, label=model_name, **model_styles[model_name])
             else:
                 print(f"⚠ No data found for: {model_name}")
 
-
-
-
+        ax.set_xscale("log")
+        xticks = [0.1, 1, 10, 100, 1000]
+        ax.set_xticks(xticks)
+        ax.set_xticklabels([f"{t}s" for t in xticks])
+        
+        ax.set_xlabel("Runtime (seconds, log scale)")
+        ax.set_ylabel("Solved instances (%)")
+        ax.set_title("Pareto Runtime Performance Comparison")
+        ax.legend(title="Model", loc="lower right")
+        
+        plt.tight_layout()
+        plt.savefig("outputs/graphs/graph_pareto_runtime_all_models.png", bbox_inches="tight", dpi=300)
+        plt.show()

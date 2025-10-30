@@ -209,7 +209,7 @@ if __name__ == '__main__':
         
         
     # plot basic models
-    plot = int(input("Do you want to print the compact model performance profiles or column generation: 1: Compact Models, 2: Column Generation, 3: None       "))
+    plot = int(input("Do you want to print the compact model performance profiles or column generation: 1: Compact Models, 2: Column Generation, 3: Compact IP epsilon models, 4: None       "))
     if (plot == 1):
         model_files = {
             "Feasibility": "outputs/results/F_all_1000_seeds_model_results.pkl",
@@ -226,6 +226,11 @@ if __name__ == '__main__':
         
         plot_model_files(model_files, 2)
 
+    elif (plot == 3):
+        model_files = {}
+        
+        plot_model_files(model_files, 3)
+
     pareto_table = int(input("Do you want to save Epsilon Model table output for 10 instances on model size: 1: small, 2: medium, 3: large, 4: None     "))
     make_epsilon_summary_table(pareto_table,  model)
     # for size in [1,2,3]:
@@ -238,4 +243,20 @@ if __name__ == '__main__':
     plt.savefig("outputs/images/epsilon_summary.png", dpi=300)
     plt.show()
         
+    # was used to run the epsilon model on 3 basic models over 100 instances
+    # model_names = {
+    #     "1": FEASIBILITY,
+    #     "2": COMPATIBLE_TIMES,
+    #     "3": DOCTOR_AVAILABLE       
+    # }
+
+    # new_seeds = range(1, 101)
+    # new_problem_size = {
+    #     "patients": 50,
+    #     "doctors":  5,
+    #     "diseases": 4,
+    #     "time periods": 20
+    # }
+    # for model in model_names.values():
+    #     epsilon_runs(model, new_problem_size, new_seeds, dense=False)
                 
