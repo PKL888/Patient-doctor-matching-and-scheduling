@@ -75,6 +75,29 @@ def plot_model_performance_comparison(all_models, objectives, obj_styles):
     plt.savefig("graph_1000_seed_model_results_by_model.png", bbox_inches='tight', dpi=300)
     plt.show()
 
+def plot_pareto_runtime_performance(results, label="Pareto Runtime", outfile="graph_pareto_runtime.png"):
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    runtimes = np.array(results)
+    runtimes.sort()
+    y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100
+
+    ax.plot(runtimes, y, label=label)
+    ax.set_xscale("log")
+
+    xticks = [0.1, 1, 10, 100, 1000]
+    ax.set_xticks(xticks)
+    ax.set_xticklabels([f"{t}s" for t in xticks])
+
+    ax.set_xlabel("Runtime (seconds, log scale)")
+    ax.set_ylabel("Solved instances (%)")
+    ax.set_title(f"Performance Profile: {label}")
+    ax.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(outfile, bbox_inches="tight", dpi=300)
+    plt.show()
+
+
 
 # --- Main Plot Function ---
 def plot_model_files(model_files, files):
@@ -127,6 +150,36 @@ def plot_model_files(model_files, files):
         plt.tight_layout()
         plt.savefig("graph_runtime_singular_vs_multiprocessing.png", bbox_inches="tight", dpi=300)
         plt.show()
+
+    elif (files == 3):
+        seeds = range(1, 1001)
+        patients, doctors, diseases, time_periods = 200, 20, 4, 20
+
+        model_styles = {
+            "feasibility": {"color": "blue", "linestyle": "-"},
+            "compatible_times": {"color": "green", "linestyle": "-"},
+            "doctor_available": {"color": "red", "linestyle": "-"},
+        }
+
+        pareto_runtimes = {model: [] for model in model_styles.keys()}
+
+        for seed in seeds:
+            for model in model_styles.keys():
+                filename = f"outputs/results/pareto_{model}_seed{seed}_I{patients}_J{doctors}_K{diseases}_T{time_periods}.pkl"
+                if os.path.exists(filename):
+                    with open(filename, "rb") as f:
+                        data = pickle.load(f)
+                    pareto_runtimes[model].append(data.get("total_runtime", 0))
+                else:
+                    print(f"[WARN] Missing: {filename}")
+
+        for model_name, runtimes in pareto_runtimes.items():
+            if runtimes:
+                print(f"Plotting Pareto runtimes for: {model_name} ({len(runtimes)} instances)")
+                plot_pareto_runtime_performance(runtimes, label=model_name, outfile=f"graph_pareto_runtime_{model_name}.png")
+            else:
+                print(f"⚠ No data found for: {model_name}")
+
 
 
 
