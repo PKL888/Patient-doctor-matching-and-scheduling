@@ -2,6 +2,7 @@ import gurobipy as gp
 import time
 
 def find_doctor_available_objectives(Y, data):
+    globals().update(data)
     # Objective expressions
     objective_0 = sum(Y[i,j,t] * (patientDoctorScore[i][j] + sum(patientTimeScore[i][t:min(t + treat[j][k], len(T))]) / treat[j][k]) for k in K for i in I_k[k] for j in J_k[k] for t in compatible_times[i,j])
 

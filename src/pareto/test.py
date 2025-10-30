@@ -1,7 +1,11 @@
 import pickle
 from frontier import *
 
+<<<<<<< HEAD
 filename = "outputs/results/pareto_compatible_times_seed10_I100_J10_K4_T20.pkl"
+=======
+filename = "outputs/results/pareto_doctor_available_seed1_I30_J3_K4_T20.pkl"
+>>>>>>> 72322d15734fcc1121c502db5848d5f886f395c0
 with open(filename, "rb") as f:
     pareto = pickle.load(f)
 

@@ -1,6 +1,7 @@
 import gurobipy as gp
 from math import ceil
 import os
+import time
 
 from compact.compatible_times import *
 from compact.doctor_available import *
@@ -8,6 +9,15 @@ from compact.feasibility import *
 from huge.cg_huge import *
 from utils.data_gen import *
 from utils.logging_results import *
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
+# from src.compact.compatible_times import *
+# from src.compact.doctor_available import *
+# from src.compact.feasibility import *
+# from src.utils.data_gen import *
+# from src.utils.logging_results import *
 
 FEASIBILITY = 1
 COMPATIBLE_TIMES = 2
@@ -143,6 +153,7 @@ def compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T,
     return pareto_solutions, dominated_solutions, pareto_indices, dominated_indices
 
 def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, d: DataInstance, dense = True):
+    stime = time.time()
     # Initial optimisation: maximise each objective individually to get bounds
     [objective_0, objective_1, objective_2] = objectives
 
@@ -163,7 +174,7 @@ def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, 
         min(pat_sat_objs[2], total_appts_objs[2])
     ]
 
-    delta_eps = [None, 1, 0.1]
+    delta_eps = [None, 1, 0.01]
 
     EPS1Con = m.addConstr(objective_1 >= 0)
     EPS2Con = m.addConstr(objective_2 >= 0)
@@ -191,13 +202,13 @@ def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, 
 
         start_time = time.time()
         print("* Slack Pareto frontier")
-        pareto_slack, dom_slack, pareto_ind_slack, dom_ind_slack = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, d, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=True, verbose=True)
+        pareto_slack, dom_slack, pareto_ind_slack, dom_ind_slack = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, d, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=True, verbose=False)
         slack_time = time.time() - start_time
 
         if dense:
             print("* Dense Pareto frontier")
             start_time = time.time()
-            pareto_dense, dom_dense, pareto_ind_dense, dom_ind_dense = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, d, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=False, verbose=True)
+            pareto_dense, dom_dense, pareto_ind_dense, dom_ind_dense = compute_pareto_set(m, Y, Z, W, S, F, I, J, K, T, objectives, data, d, model, initial_lower_bound, initial_upper_bound, EPS1Con, EPS2Con, delta_eps, use_slack=False, verbose=False)
             dense_time = time.time() - start_time
 
         output = {
@@ -218,6 +229,9 @@ def make_pareto_frontier(data, m, Y, Z, W, S, F, I, J, K, T, objectives, model, 
             }
             output.update(dense_output)
 
+        # Add total runtime to output
+        total_runtime = time.time() - stime
+        output["total_runtime"] = total_runtime
         with open(filename, "wb") as f:
             pickle.dump(output, f)
         print(f"[INFO] Saved pareto frontier to {filename}")

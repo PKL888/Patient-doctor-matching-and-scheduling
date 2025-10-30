@@ -34,16 +34,16 @@ def left_pad_string(s, length):
         return s
     return " " * (length - len(s)) + s 
 
-def create_schedule(model_type, Vs=None, Z=None, S=None):
+def create_schedule(model_type, d:DataInstance, Vs=None, Z=None, S=None):
     if (model_type == 0):
         schedule = []
-        for j in J:
-            doctor_schedule = [int(patient - 1) for patient in [sum((Vs[i,j,tt] * (i + 1)) for k in K for i in I_k[k] for tt in T[max(0, t - treat[j][k] + 1):t+1]) for t in T]]
+        for j in d.J:
+            doctor_schedule = [int(patient - 1) for patient in [sum((Vs[i,j,tt] * (i + 1)) for k in d.K for i in d.I_k[k] for tt in d.T[max(0, t - d.treat[j][k] + 1):t+1]) for t in d.T]]
             schedule.append(doctor_schedule)
         return schedule
     elif (model_type == 1):
         schedule = []
-        for j in J:
+        for j in d.J:
             chosen_s = None
             for s in S[j]:
                 if Z[j, s].X > 0.5:
@@ -53,19 +53,19 @@ def create_schedule(model_type, Vs=None, Z=None, S=None):
                 doctor_schedule = [-1 for _ in T]
             else:
                 _, Vs = S[j][chosen_s]
-                doctor_schedule = expand_schedule(Vs, j)
+                doctor_schedule = expand_schedule(Vs, j, d)
             schedule.append(doctor_schedule)
         return schedule
 
-def print_schedule(model_type, schedule):
+def print_schedule(model_type, d: DataInstance, schedule):
     if (model_type == 0):
-        padding = len(str(len(I)))
-        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
-        for j in J:
+        padding = len(str(len(d.I)))
+        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in d.T]))
+        for j in d.J:
             formatted_doctor_schedule = []
             for t, patient in enumerate(schedule[j]):
                 if patient is None or patient < 0:  # nobody scheduled
-                    if doctor_times[j][t]:  
+                    if d.doctor_times[j][t]:  
                         s_val = "-"   # available but not treating
                     else:
                         s_val = " "   # doctor unavailable
@@ -74,32 +74,35 @@ def print_schedule(model_type, schedule):
                 formatted_doctor_schedule.append(left_pad_string(s_val, padding))
             print("doctor:", j, " ".join(formatted_doctor_schedule))
     elif (model_type == 1):
-        padding = len(str(len(I)))
-        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in T]))
-        for j, doctor_schedule in zip(J, schedule):
+        padding = len(str(len(d.I)))
+        print("time:     " + " ".join([left_pad_string(str(t), padding) for t in d.T]))
+        for j, doctor_schedule in zip(d.J, schedule):
             formatted = []
             for t, patient in enumerate(doctor_schedule):
                 if patient == -1:
                     s_val = "-"
                 else:
                     s_val = str(patient)
-                if not doctor_times[j][t]:
+                if not d.doctor_times[j][t]:
                     s_val = " "
                 formatted.append(left_pad_string(s_val, padding))
             print("doctor:", j, " ".join(formatted))
 
-def expand_schedule(Vs, doctor):
+def expand_schedule(Vs, doctor, d):
     timeline = [-1 for _ in T]
-    for (i, d, t) in Vs:
-        length = treat[doctor][patient_diseases[i]]
+    for (i, dd, t) in Vs:
+        length = d.treat[doctor][d.patient_diseases[i]]
         for tt in range(t, t + length):
             if tt < len(T):
                 timeline[tt] = i
     return timeline
 
-def plot_schedule(schedule, model, show_plot):
+def plot_schedule(schedule, model, show_plot, d: DataInstance):
     fig, ax = plt.subplots(figsize=(8, 2))
-
+    I = d.I
+    J = d.J
+    K = d.K
+    T = d.T
     cmap = plt.cm.gist_rainbow  # rainbow colormap
     n_patients = len(I)
 
@@ -113,11 +116,11 @@ def plot_schedule(schedule, model, show_plot):
         t = 0
         while t < len(T):
             patient = doctor_schedule[t]
-            if doctor_times[j][t]:
+            if d.doctor_times[j][t]:
                 # Start of a block
                 start = t
                 while (t < len(T) and doctor_schedule[t] == patient 
-                       and doctor_times[j][t]):
+                       and d.doctor_times[j][t]):
                     t += 1
                 end = t
 
@@ -167,7 +170,7 @@ def plot_schedule(schedule, model, show_plot):
     plt.tight_layout()
     
     path = "outputs/images"
-    filename = (f"{path}/plot_{model_names[model]}_seed{seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.png")
+    filename = (f"{path}/plot_{model_names[model]}_seed{d.seed}_I{len(I)}_J{len(J)}_K{len(K)}_T{len(T)}.png")
     plt.savefig(filename, dpi=300)
     if show_plot: plt.show()
 
@@ -216,7 +219,8 @@ def get_values_for_model(Y, Z, W, S, F, model, data, d):
 
         return Zs, objectives
     
-    elif model == FRAGMENT_COLUMN_GEN:
+    else:
+        assert model == FRAGMENT_COLUMN_GEN
         # Wvals = {key: W[key].x for key in W}
         Ws = {(j, f): W[j][f].x for j in J for f in F[j]}
         objectives = find_fragment_objectives(Ws, d, F)
@@ -233,16 +237,15 @@ def print_stats(Y, Z, W, S, F, model, data, objectives):
     print("\nSchedule: --------------------------------")
 
 def optimise_and_print_schedule(model_type, model, m, Y, Z, W, S, F, data, d, show_plot):
-    globals().update(data)
     
     m.optimize()
     
     Vs, objectives = get_values_for_model(Y, Z, W, S, F, model, data, d)
-    schedule = create_schedule(model_type, Vs, Z, S)
+    schedule = create_schedule(model_type, d, Vs, Z, S)
     
     print_stats(Y, Z, W, S, F, model, data, objectives)
-    print_schedule(model_type, schedule)
-    plot_schedule(schedule, model, show_plot)
+    print_schedule(model_type, d, schedule)
+    plot_schedule(schedule, model, show_plot, d)
 
 # def optimise_and_collect(model_type, objective_name, m, Y, Z, S, M1, I, J, K, T, I_k, treat, allocate_rank, qualified, doctor_rank, patient_available, patient_time_prefs, patient_diseases):
     # start_obj_time = time.time()

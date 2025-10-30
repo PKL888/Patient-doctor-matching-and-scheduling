@@ -1,5 +1,15 @@
 import pickle
 import numpy as np
+import sys
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import textwrap
+
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+from outputs.results import *
+from src.huge import *
 
 def summarize_results(all_results, model_name):
     """Aggregate presolve info and solver statistics across 100 seeds."""
@@ -146,10 +156,27 @@ def summarize_results(all_results, model_name):
     print("\nEND OF MODEL SUMMARY")
     print("="*100 + "\n")
 
+def summarize_pareto_slack_results(seeds, patients, doctors, diseases, time_periods):
+    path = "outputs/results"
+    runtimes = []
+    pareto_counts = []
 
-if __name__ == "__main__":
-    file_path = "F_all_1000_seeds_model_results.pkl"
-    with open(file_path, "rb") as f:
-        all_results = pickle.load(f)
+    for seed in seeds:
+        filename = f"{path}/pareto_doctor_available_seed{seed}_I{patients}_J{doctors}_K{diseases}_T{time_periods}.pkl"
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                data = pickle.load(f)
+            runtimes.append(data.get("total_runtime", 0))
+            pareto_counts.append(len(data.get("pareto_slack", [])))
+        else:
+            print(f"[WARN] File not found for seed {seed}: {filename}")
 
-    summarize_results(all_results, model_name="Doctor Available Model")
+    summary = {
+        "Patients": patients,
+        "Doctors": doctors,
+        "Min Runtime": round(min(runtimes), 3),
+        "Max Runtime": round(max(runtimes), 3),
+        "Avg Runtime": round(np.mean(runtimes), 3),
+        "Avg Pareto Solutions": round(np.mean(pareto_counts))
+    }
+    return summary
