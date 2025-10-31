@@ -61,9 +61,9 @@ def make_huge_frag_model(d:DataInstance, max_frag_length):
     F = frag_data["F"]
     I = frag_data["I"]
     T = frag_data["T"]
-    print("\nFragments:")
-    for f, value in F.items():
-        print(f, value)
+    # print("\nFragments:")
+    # for f, value in F.items():
+    #     print(f, value)
     max_length_fragments_by_next_time = frag_data["max_length_fragments_by_next_time"]
     fragments_by_start_time = frag_data["fragments_by_start_time"]
 
