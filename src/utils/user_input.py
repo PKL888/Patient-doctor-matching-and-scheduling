@@ -11,7 +11,7 @@ from huge.cg_huge import make_huge_model
 from pareto.epsilon_10_instances import epsilon_runs
 from pareto.frontier import *
 from utils.data_instance import DataInstance
-from utils.graph_1000_seed_model_results import plot_model_files
+from utils.plot_model_results import plot_model_files
 from utils.print_model_results import summarize_pareto_slack_results
 
 FEASIBILITY = 1

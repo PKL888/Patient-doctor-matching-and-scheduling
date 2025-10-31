@@ -1,27 +1,21 @@
-import os
-import pickle
-import time
 import gurobipy as gp
-
-import sys
+import os
 from pathlib import Path
-sys.path.append(str(Path(__file__).resolve().parents[2]))
-from outputs.results import *
+import pickle
+import sys
 
-from src.pareto.epsilon import make_pareto_frontier, FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE, FRAGMENT_COLUMN_GEN, SUBSET_COLUMN_GEN
-from src.huge import *
+sys.path.append(str(Path(__file__).resolve().parents[2]))
+
 from compact.compatible_times import make_compatible_times_model 
 from compact.doctor_available import make_doctor_available_model 
 from compact.feasibility import make_feasibility_model 
 from huge.cg_fragments_formulation import make_huge_frag_model
 from huge.cg_huge import make_huge_model
+from outputs.results import *
+from src.huge import *
+from src.pareto.epsilon import make_pareto_frontier, FEASIBILITY, COMPATIBLE_TIMES, DOCTOR_AVAILABLE, FRAGMENT_COLUMN_GEN, SUBSET_COLUMN_GEN
 from src.utils.data_gen import get_data  
 from utils.data_instance import DataInstance
-# from main import make_model
-
-import os
-import pickle
-import time
 
 def make_model(model:int, data: dict, d: DataInstance, frag_length = 0):
     Y = None
@@ -110,4 +104,3 @@ def epsilon_runs(model_type, problem_size, seeds, dense=True, frag_length = 0):
             make_pareto_frontier(data, m, Y, Z, W, S, F, d.I, d.J, d.K, d.T, objectives, model_type, d, dense = False)
 
     print("[INFO] Finished computing Pareto frontiers for all seeds.")
-

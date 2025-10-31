@@ -9,7 +9,6 @@ plt.rcParams.update({
     "font.size": 16
 })
 
-# --- Helper function ---
 def extract_runtimes(model_results):
     runtimes = [res["model_results"]["stats"]["runtime"] for res in model_results.values()]
     runtimes = np.array(runtimes)
@@ -17,9 +16,7 @@ def extract_runtimes(model_results):
     y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100  # percentage
     return runtimes, y
 
-# --- Plot functions ---
 def plot_performance_profiles(all_models, objectives, model_styles):
-    """Plots one subplot per objective, comparing models."""
     fig, axes = plt.subplots(1, len(objectives), figsize=(16, 5))
 
     for i, (obj_key, obj_label) in enumerate(objectives.items()):
@@ -37,7 +34,7 @@ def plot_performance_profiles(all_models, objectives, model_styles):
         ax.set_xticklabels([f"{t}s" for t in xticks])
 
         # Labels and title
-        ax.set_xlabel("Runtime")
+        ax.set_xlabel("Runtime (s)")
         ax.set_ylabel("Solved instances (%)")
         ax.set_title(obj_label)
 
@@ -46,64 +43,37 @@ def plot_performance_profiles(all_models, objectives, model_styles):
     plt.savefig("outputs/graphs/graph_1000_seed_model_results.png", bbox_inches='tight', dpi=300)
     plt.show()
 
-def plot_model_performance_comparison(all_models, objectives, obj_styles):
-    fig, axes = plt.subplots(1, len(all_models), figsize=(16, 5))
-
-    for i, (model_name, model_results) in enumerate(all_models.items()):
-        ax = axes[i]
-        for obj_key, obj_label in objectives.items():
-            x, y = extract_runtimes(model_results[obj_key])
-            ax.plot(x, y, label=obj_label, **obj_styles[obj_key])
-
-        # Log scale for x-axis
-        ax.set_xscale("log")
-
-        # Log-spaced ticks and labels
-        xticks = [0.1, 1, 10]
-        ax.set_xticks(xticks)
-        ax.set_xticklabels([f"{t}s" for t in xticks])
-
-        # Labels and title
-        ax.set_xlabel("Runtime")
-        ax.set_ylabel("Solved instances (%)")
-        ax.set_title(model_name)
-
-    axes[-1].legend(title="Objective", loc="lower right")
-    plt.tight_layout()
-    plt.savefig("outputs/graphs/graph_1000_seed_model_results_by_model.png", bbox_inches='tight', dpi=300)
-    plt.show()
-
-def plot_pareto_runtime_performance(results, label="Pareto Runtime", outfile="graph_pareto_runtime.png"):
+def plot_pareto_runtime_performance(model_runtimes, model_styles, model_names, label="Pareto", outfile="graph_pareto_runtime.png"):
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    runtimes = np.array(results)
-    runtimes.sort()
-    y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100
+    for model_name, runtimes in model_runtimes.items():
+        if runtimes:
+            runtimes = np.sort(np.array(runtimes))
+            y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100
+            ax.plot(runtimes, y, label=model_names[model_name], **model_styles.get(model_name, {}))
+        else:
+            print(f"⚠ No data found for: {model_name}")
 
-    ax.plot(runtimes, y, label=label)
     ax.set_xscale("log")
-
-    xticks = [0.1, 1, 10, 100, 1000]
+    xticks = [0.1, 1, 10, 100]
     ax.set_xticks(xticks)
     ax.set_xticklabels([f"{t}s" for t in xticks])
 
-    ax.set_xlabel("Runtime (seconds, log scale)")
+    ax.set_xlabel("Runtime (s)")
     ax.set_ylabel("Solved instances (%)")
-    ax.set_title(f"Performance Profile: {label}")
-    ax.legend(loc="lower right")
+    ax.set_title(f"{label} performance profiles")
+    ax.legend(title = "Model:", loc="lower right", frameon=False)
+
     plt.tight_layout()
     plt.savefig(outfile, bbox_inches="tight", dpi=300)
     plt.show()
 
-# --- Main plot function ---
 def plot_model_files(model_files, files):
-    """Loads models from pickle files and plots performance profiles."""
     all_models = {}
     for model_name, file_path in model_files.items():
         with open(file_path, "rb") as f:
             all_models[model_name] = pickle.load(f)
 
-    # --- CASE 1: Compact models ---
     if files == 1:
         objectives = {
             "patient_satisfaction": "Patient satisfaction",
@@ -124,25 +94,29 @@ def plot_model_files(model_files, files):
         }
 
         plot_performance_profiles(all_models, objectives, model_styles)
-        plot_model_performance_comparison(all_models, objectives, obj_styles)
 
-    # --- CASE 2: Singular vs Multiprocessing runtime comparison ---
     elif files == 2:
         fig, ax = plt.subplots(figsize=(8, 6))
 
+        name_map = {
+            "Singular:": "Serial",
+            "Multiproccessing: ": "Multi-processing",
+        }
+
         for model_name, model_results in all_models.items():
-            # collect total seed runtimes
+            display_name = name_map[model_name]
+
             runtimes = [res["runtime_seconds"] for res in model_results.values()]
             runtimes = np.array(runtimes)
             runtimes.sort()
             y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100
-            ax.plot(runtimes, y, label=model_name)
+            ax.plot(runtimes, y, label=display_name)
 
         ax.set_xscale("log")
-        ax.set_xlabel("Runtime")
-        ax.set_ylabel("Solved seeds (%)")
-        ax.set_title("Runtime comparison: Singular vs Multiprocessing")
-        ax.legend(title="Mode", loc="lower right")
+        ax.set_xlabel("Runtime (s)")
+        ax.set_ylabel("Solved instances (%)")
+        ax.set_title("Column generation performance profiles")
+        ax.legend(title="Procedure:", loc="lower right", frameon=False)
         plt.tight_layout()
         plt.savefig("outputs/graphs/graph_runtime_singular_vs_multiprocessing.png", bbox_inches="tight", dpi=300)
         plt.show()
@@ -157,12 +131,18 @@ def plot_model_files(model_files, files):
             "doctor_available": {"color": "red", "linestyle": "-"},
         }
 
+        model_names = {
+            "feasibility": "Feasibility",
+            "compatible_times": "Compatible times",
+            "doctor_available": "Doctor available",
+        }
+
         # Collect runtimes for all models
         pareto_runtimes = {model: [] for model in model_styles.keys()}
 
-        for seed in seeds:
+        for seed in range(1,101):
             for model in model_styles.keys():
-                filename = f"outputs/results/pareto_{model}_seed{seed}_I{patients}_J{doctors}_K{diseases}_T{time_periods}.pkl"
+                filename = f"outputs/results/pareto_{model}_seed{seed}_I{50}_J{5}_K{4}_T{20}.pkl"
                 if os.path.exists(filename):
                     with open(filename, "rb") as f:
                         data = pickle.load(f)
@@ -170,28 +150,4 @@ def plot_model_files(model_files, files):
                 else:
                     print(f"[WARN] Missing: {filename}")
 
-        # --- Plot all models on the same figure ---
-        fig, ax = plt.subplots(figsize=(8, 6))
-        
-        for model_name, runtimes in pareto_runtimes.items():
-            if runtimes:
-                runtimes = np.array(runtimes)
-                runtimes.sort()
-                y = np.arange(1, len(runtimes) + 1) / len(runtimes) * 100
-                ax.plot(runtimes, y, label=model_name, **model_styles[model_name])
-            else:
-                print(f"⚠ No data found for: {model_name}")
-
-        ax.set_xscale("log")
-        xticks = [0.1, 1, 10, 100, 1000]
-        ax.set_xticks(xticks)
-        ax.set_xticklabels([f"{t}s" for t in xticks])
-        
-        ax.set_xlabel("Runtime (seconds, log scale)")
-        ax.set_ylabel("Solved instances (%)")
-        ax.set_title("Pareto Runtime Performance Comparison")
-        ax.legend(title="Model", loc="lower right")
-        
-        plt.tight_layout()
-        plt.savefig("outputs/graphs/graph_pareto_runtime_all_models.png", bbox_inches="tight", dpi=300)
-        plt.show()
+        plot_pareto_runtime_performance(pareto_runtimes, model_styles, model_names, outfile="outputs/graphs/graph_pareto_runtime_all_models.png")

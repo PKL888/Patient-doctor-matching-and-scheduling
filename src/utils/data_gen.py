@@ -18,7 +18,7 @@ def gen_treat(J, K, T, best):
                 denom = random.normalvariate(0.75, 0.5)
             row.append(math.ceil(best[k] / denom))
         treatments.append(row)
-        if all([treat_time > len(T) for treat_time in treatments[j]] for k in K):
+        if all([treat_time > len(T) for treat_time in treatments[j]]):
             treatments[j][0] = len(T)
     return treatments
 
